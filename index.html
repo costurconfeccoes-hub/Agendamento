@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Agendamento - Costura</title>
+    <title>Sistema de Agendamento - Costur Confecções</title>
     <style>
         :root {
             --primary-color: #4a6fa5;
@@ -158,6 +158,13 @@
             font-size: 0.9rem;
             width: auto;
             margin-right: 10px;
+        }
+        
+        .btn-delete {
+            background: var(--danger-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
         }
         
         .calendar-container {
@@ -434,8 +441,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>Sistema de Agendamento - Costura</h1>
-            <p class="subtitle">Controle de agendamentos com bloqueio automático de datas</p>
+            <h1>Costur confecções</h1>
+            <p class="subtitle">Agendamento</p>
             <div class="admin-access">
                 <button class="admin-btn" onclick="openAdmin()">🔧 Área Administrativa</button>
             </div>
@@ -566,19 +573,34 @@
     </div>
 
     <script>
-        // Dados de exemplo
-        let appointments = [
-            {
-                id: 1,
-                clientName: "Dynno's Kids",
-                startDate: "2025-10-20",
-                quantity: 314,
-                serviceType: "Confecção parcial",
-                estimatedDays: 6,
-                endDate: "2025-10-26",
-                status: "active" // active, cancelled, completed
+        // Funções para persistência de dados
+        function saveAppointments() {
+            localStorage.setItem('costuraAppointments', JSON.stringify(appointments));
+        }
+        
+        function loadAppointments() {
+            const savedAppointments = localStorage.getItem('costuraAppointments');
+            if (savedAppointments) {
+                return JSON.parse(savedAppointments);
+            } else {
+                // Dados de exemplo iniciais
+                return [
+                    {
+                        id: 1,
+                        clientName: "Dynno's Kids",
+                        startDate: "2025-10-20",
+                        quantity: 314,
+                        serviceType: "Confecção parcial",
+                        estimatedDays: 6,
+                        endDate: "2025-10-26",
+                        status: "active"
+                    }
+                ];
             }
-        ];
+        }
+        
+        // Carregar dados salvos
+        let appointments = loadAppointments();
 
         // Elementos DOM
         const appointmentForm = document.getElementById('appointment-form');
@@ -809,6 +831,7 @@
                             `<button class="btn-edit" onclick="reactivateAppointment(${appointment.id})">Reativar</button>` : 
                             ''
                         }
+                        <button class="btn-delete" onclick="deleteAppointment(${appointment.id})">Excluir</button>
                     </div>
                 `;
                 
@@ -856,6 +879,7 @@
                 const appointment = appointments.find(app => app.id === appointmentId);
                 if (appointment) {
                     appointment.status = 'cancelled';
+                    saveAppointments(); // Salvar após cancelar
                     updateAdminAppointmentsList('all');
                     updateCalendar();
                     updateAppointmentsList();
@@ -870,12 +894,26 @@
                 const appointment = appointments.find(app => app.id === appointmentId);
                 if (appointment) {
                     appointment.status = 'active';
+                    saveAppointments(); // Salvar após reativar
                     updateAdminAppointmentsList('all');
                     updateCalendar();
                     updateAppointmentsList();
                     updateStats();
                     alert('Agendamento reativado com sucesso!');
                 }
+            }
+        }
+
+        // NOVA FUNÇÃO: Excluir permanentemente um agendamento
+        function deleteAppointment(appointmentId) {
+            if (confirm('ATENÇÃO: Esta ação excluirá permanentemente o agendamento. Tem certeza?')) {
+                appointments = appointments.filter(app => app.id !== appointmentId);
+                saveAppointments(); // Salvar após excluir
+                updateAdminAppointmentsList('all');
+                updateCalendar();
+                updateAppointmentsList();
+                updateStats();
+                alert('Agendamento excluído permanentemente!');
             }
         }
 
@@ -926,7 +964,7 @@
             
             // Criar novo agendamento
             const newAppointment = {
-                id: appointments.length + 1,
+                id: appointments.length > 0 ? Math.max(...appointments.map(a => a.id)) + 1 : 1,
                 clientName,
                 startDate,
                 quantity,
@@ -937,6 +975,7 @@
             };
             
             appointments.push(newAppointment);
+            saveAppointments(); // Salvar após adicionar
             
             // Atualizar interface
             updateCalendar();
