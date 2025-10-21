@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Agendamento - Costura</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6b8cbc;
+            --accent-color: #ff7e5f;
+            --light-color: #f5f7fa;
+            --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --admin-color: #8e44ad;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 25px 0;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .admin-access {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        
+        .admin-btn {
+            background: var(--admin-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h2 i {
+            margin-right: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.2);
+            outline: none;
+        }
+        
+        button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-cancel {
+            background: var(--danger-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+        }
+        
+        .btn-edit {
+            background: var(--warning-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            margin-right: 10px;
+        }
+        
+        .calendar-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        .calendar {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .calendar-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .calendar-body {
+            padding: 15px;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+        
+        .calendar-day {
+            text-align: center;
+            padding: 10px 5px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .calendar-day.header {
+            font-weight: bold;
+            background-color: #f0f0f0;
+            color: var(--dark-color);
+        }
+        
+        .calendar-day.available {
+            background-color: var(--success-color);
+            color: white;
+            cursor: pointer;
+        }
+        
+        .calendar-day.available:hover {
+            background-color: #27ae60;
+            transform: scale(1.05);
+        }
+        
+        .calendar-day.unavailable {
+            background-color: #eee;
+            color: #999;
+        }
+        
+        .calendar-day.booked {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .calendar-day.today {
+            border: 2px solid var(--accent-color);
+            font-weight: bold;
+        }
+        
+        .appointments-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        
+        .appointment-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        
+        .appointment-item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .appointment-item:last-child {
+            border-bottom: none;
+        }
+        
+        .appointment-details {
+            flex-grow: 1;
+        }
+        
+        .appointment-dates {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .appointment-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .appointment-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-booked {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .status-completed {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .status-cancelled {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        .calculation-result {
+            background: linear-gradient(135deg, #e8f4fd, #d4e9fa);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .calculation-result h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* Modal Admin */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal h2 {
+            color: var(--admin-color);
+            margin-bottom: 20px;
+        }
+        
+        .admin-appointments {
+            margin-top: 20px;
+        }
+        
+        .admin-appointment-item {
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: #f9f9f9;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-btn {
+            background: #ecf0f1;
+            color: var(--dark-color);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .calendar-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-access {
+                position: static;
+                text-align: center;
+                margin-top: 15px;
+            }
+            
+            .appointment-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sistema de Agendamento - Costura</h1>
+            <p class="subtitle">Controle de agendamentos com bloqueio automático de datas</p>
+            <div class="admin-access">
+                <button class="admin-btn" onclick="openAdmin()">🔧 Área Administrativa</button>
+            </div>
+        </header>
+        
+        <div class="card">
+            <h2><i>📅</i> Novo Agendamento</h2>
+            <form id="appointment-form">
+                <div class="form-group">
+                    <label for="client-name">Nome do Cliente</label>
+                    <input type="text" id="client-name" required placeholder="Digite o nome do cliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="service-date">Data de Início do Serviço</label>
+                    <input type="date" id="service-date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="quantity">Quantidade de Peças</label>
+                    <input type="number" id="quantity" min="1" value="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="service-type">Tipo de Serviço</label>
+                    <select id="service-type" required>
+                        <option value="">Selecione o tipo de serviço</option>
+                        <option value="confecção completa">Confecção completa</option>
+                        <option value="Confecção parcial">Confecção parcial</option>
+                    </select>
+                </div>
+                
+                <div class="calculation-result" id="calculation-result">
+                    <h3>Detalhes do Serviço</h3>
+                    <p><strong>Dias estimados para conclusão:</strong> <span id="estimated-days">0</span> dias</p>
+                    <p><strong>Data de conclusão estimada:</strong> <span id="completion-date">-</span></p>
+                </div>
+                
+                <button type="submit" id="submit-btn">Agendar Serviço</button>
+            </form>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="total-appointments">0</div>
+                <div class="stat-label">Agendamentos Ativos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-pieces">0</div>
+                <div class="stat-label">Peças em Produção</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="occupied-days">0</div>
+                <div class="stat-label">Dias Ocupados</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i>📆</i> Calendário de Disponibilidade</h2>
+            <div class="calendar-container">
+                <div class="calendar">
+                    <div class="calendar-header" id="current-month">Carregando...</div>
+                    <div class="calendar-body">
+                        <div class="calendar-grid" id="calendar-days">
+                            <!-- Dias serão gerados via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3>Legenda</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color available"></div>
+                            <span>Disponível para agendamento</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color booked"></div>
+                            <span>Período ocupado</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color today"></div>
+                            <span>Dia atual</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button id="prev-month">Mês Anterior</button>
+                        <button id="next-month" style="margin-top: 10px;">Próximo Mês</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i>📋</i> Agendamentos Ativos</h2>
+            <div class="appointments-list" id="appointments-list">
+                <!-- Agendamentos serão gerados via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Administrativo -->
+    <div class="modal" id="admin-modal">
+        <div class="modal-content">
+            <h2><i>🔧</i> Área Administrativa</h2>
+            
+            <div class="form-group">
+                <label for="admin-password">Senha de Acesso:</label>
+                <input type="password" id="admin-password" placeholder="Digite a senha administrativa">
+                <button onclick="loginAdmin()" style="margin-top: 10px;">Acessar</button>
+            </div>
+            
+            <div id="admin-panel" style="display: none;">
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="filterAppointments('all')">Todos</button>
+                    <button class="filter-btn" onclick="filterAppointments('active')">Ativos</button>
+                    <button class="filter-btn" onclick="filterAppointments('cancelled')">Cancelados</button>
+                </div>
+                
+                <div class="admin-appointments" id="admin-appointments-list">
+                    <!-- Lista administrativa será gerada aqui -->
+                </div>
+                
+                <button onclick="closeAdmin()" style="margin-top: 20px; background: var(--danger-color);">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de exemplo
+        let appointments = [
+            {
+                id: 1,
+                clientName: "Dynno's Kids",
+                startDate: "2025-10-20",
+                quantity: 314,
+                serviceType: "Confecção parcial",
+                estimatedDays: 6,
+                endDate: "2025-10-26",
+                status: "active" // active, cancelled, completed
+            }
+        ];
+
+        // Elementos DOM
+        const appointmentForm = document.getElementById('appointment-form');
+        const clientNameInput = document.getElementById('client-name');
+        const serviceDateInput = document.getElementById('service-date');
+        const quantityInput = document.getElementById('quantity');
+        const serviceTypeSelect = document.getElementById('service-type');
+        const submitBtn = document.getElementById('submit-btn');
+        const calculationResult = document.getElementById('calculation-result');
+        const estimatedDaysSpan = document.getElementById('estimated-days');
+        const completionDateSpan = document.getElementById('completion-date');
+        const calendarDays = document.getElementById('calendar-days');
+        const currentMonthSpan = document.getElementById('current-month');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const appointmentsList = document.getElementById('appointments-list');
+        const totalAppointmentsSpan = document.getElementById('total-appointments');
+        const totalPiecesSpan = document.getElementById('total-pieces');
+        const occupiedDaysSpan = document.getElementById('occupied-days');
+        const adminModal = document.getElementById('admin-modal');
+        const adminPanel = document.getElementById('admin-panel');
+        const adminAppointmentsList = document.getElementById('admin-appointments-list');
+
+        // Configuração inicial da data - AGORA USA A DATA ATUAL
+        let currentDate = new Date(); // Muda para data atual
+        serviceDateInput.min = new Date().toISOString().split('T')[0];
+
+        // Senha administrativa (você pode mudar para uma mais segura)
+        const ADMIN_PASSWORD = "costur123";
+
+        // Função para calcular dias necessários automaticamente
+        function calculateDaysNeeded(quantity) {
+            // Aplicar a fórmula: (quantidade / 40) + 1
+            return Math.ceil(quantity / 40) + 1;
+        }
+
+        // Função para atualizar o cálculo automaticamente
+        function updateCalculation() {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const serviceType = serviceTypeSelect.value;
+            
+            if (quantity > 0 && serviceType) {
+                const estimatedDays = calculateDaysNeeded(quantity);
+                estimatedDaysSpan.textContent = estimatedDays;
+                
+                // Calcular data de conclusão
+                if (serviceDateInput.value) {
+                    const startDate = new Date(serviceDateInput.value);
+                    const completionDate = new Date(startDate);
+                    completionDate.setDate(completionDate.getDate() + estimatedDays - 1);
+                    completionDateSpan.textContent = completionDate.toLocaleDateString('pt-BR');
+                } else {
+                    completionDateSpan.textContent = '-';
+                }
+                
+                calculationResult.style.display = 'block';
+            } else {
+                calculationResult.style.display = 'none';
+            }
+        }
+
+        // Função para atualizar o calendário
+        function updateCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Atualizar cabeçalho do mês
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            currentMonthSpan.textContent = `${monthNames[month]} ${year}`;
+            
+            // Limpar calendário
+            calendarDays.innerHTML = '';
+            
+            // Adicionar cabeçalhos dos dias da semana
+            const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+            dayNames.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day header';
+                dayElement.textContent = day;
+                calendarDays.appendChild(dayElement);
+            });
+            
+            // Obter primeiro dia do mês e último dia do mês
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            
+            // Preencher dias vazios no início do mês
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day';
+                calendarDays.appendChild(emptyDay);
+            }
+            
+            // Preencher os dias do mês
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dayElement = document.createElement('div');
+                const currentDay = new Date(year, month, day);
+                
+                // Verificar se o dia está disponível
+                let isAvailable = true;
+                let isToday = currentDay.getTime() === today.getTime();
+                
+                // Verificar se o dia está em algum período de agendamento (apenas ativos)
+                appointments.forEach(appointment => {
+                    if (appointment.status === 'active') {
+                        const startDate = new Date(appointment.startDate);
+                        const endDate = new Date(appointment.endDate);
+                        
+                        if (currentDay >= startDate && currentDay <= endDate) {
+                            isAvailable = false;
+                        }
+                    }
+                });
+                
+                dayElement.className = `calendar-day ${isAvailable ? 'available' : 'booked'} ${isToday ? 'today' : ''}`;
+                dayElement.textContent = day;
+                
+                // Adicionar informações sobre agendamentos no tooltip
+                if (!isAvailable) {
+                    const appointmentOnDay = appointments.find(app => {
+                        if (app.status === 'active') {
+                            const start = new Date(app.startDate);
+                            const end = new Date(app.endDate);
+                            return currentDay >= start && currentDay <= end;
+                        }
+                        return false;
+                    });
+                    
+                    if (appointmentOnDay) {
+                        dayElement.title = `Ocupado: ${appointmentOnDay.clientName} (${appointmentOnDay.quantity} peças)`;
+                    }
+                }
+                
+                calendarDays.appendChild(dayElement);
+            }
+        }
+
+        // Função para atualizar a lista de agendamentos (pública)
+        function updateAppointmentsList() {
+            appointmentsList.innerHTML = '';
+            
+            const activeAppointments = appointments.filter(app => app.status === 'active');
+            
+            if (activeAppointments.length === 0) {
+                appointmentsList.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum agendamento ativo no momento.</p>';
+                return;
+            }
+            
+            activeAppointments.forEach(appointment => {
+                const appointmentItem = document.createElement('div');
+                appointmentItem.className = 'appointment-item';
+                
+                const startDate = new Date(appointment.startDate);
+                const endDate = new Date(appointment.endDate);
+                
+                appointmentItem.innerHTML = `
+                    <div class="appointment-details">
+                        <strong>${appointment.clientName}</strong>
+                        <div class="appointment-dates">
+                            ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}
+                        </div>
+                        <div>${appointment.quantity} peças - ${appointment.serviceType}</div>
+                    </div>
+                    <div class="appointment-status status-booked">${appointment.estimatedDays} dias</div>
+                `;
+                
+                appointmentsList.appendChild(appointmentItem);
+            });
+        }
+
+        // Função para atualizar a lista administrativa
+        function updateAdminAppointmentsList(filter = 'all') {
+            adminAppointmentsList.innerHTML = '';
+            
+            let filteredAppointments = appointments;
+            
+            if (filter === 'active') {
+                filteredAppointments = appointments.filter(app => app.status === 'active');
+            } else if (filter === 'cancelled') {
+                filteredAppointments = appointments.filter(app => app.status === 'cancelled');
+            }
+            
+            if (filteredAppointments.length === 0) {
+                adminAppointmentsList.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum agendamento encontrado.</p>';
+                return;
+            }
+            
+            filteredAppointments.forEach(appointment => {
+                const appointmentItem = document.createElement('div');
+                appointmentItem.className = 'admin-appointment-item';
+                
+                const startDate = new Date(appointment.startDate);
+                const endDate = new Date(appointment.endDate);
+                
+                let statusClass = 'status-booked';
+                let statusText = 'Ativo';
+                
+                if (appointment.status === 'cancelled') {
+                    statusClass = 'status-cancelled';
+                    statusText = 'Cancelado';
+                } else if (appointment.status === 'completed') {
+                    statusClass = 'status-completed';
+                    statusText = 'Concluído';
+                }
+                
+                appointmentItem.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <strong>${appointment.clientName}</strong>
+                        <span class="appointment-status ${statusClass}" style="float: right;">${statusText}</span>
+                    </div>
+                    <div class="appointment-dates">
+                        ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}
+                    </div>
+                    <div>${appointment.quantity} peças - ${appointment.serviceType}</div>
+                    <div style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                        ID: ${appointment.id} | Dias: ${appointment.estimatedDays}
+                    </div>
+                    <div class="appointment-actions" style="margin-top: 15px;">
+                        ${appointment.status === 'active' ? 
+                            `<button class="btn-cancel" onclick="cancelAppointment(${appointment.id})">Cancelar Agendamento</button>` : 
+                            ''
+                        }
+                        ${appointment.status === 'cancelled' ? 
+                            `<button class="btn-edit" onclick="reactivateAppointment(${appointment.id})">Reativar</button>` : 
+                            ''
+                        }
+                    </div>
+                `;
+                
+                adminAppointmentsList.appendChild(appointmentItem);
+            });
+        }
+
+        // Função para atualizar as estatísticas
+        function updateStats() {
+            const activeAppointments = appointments.filter(app => app.status === 'active');
+            
+            totalAppointmentsSpan.textContent = activeAppointments.length;
+            
+            const totalPieces = activeAppointments.reduce((sum, app) => sum + app.quantity, 0);
+            totalPiecesSpan.textContent = totalPieces;
+            
+            const occupiedDays = activeAppointments.reduce((sum, app) => sum + app.estimatedDays, 0);
+            occupiedDaysSpan.textContent = occupiedDays;
+        }
+
+        // Funções administrativas
+        function openAdmin() {
+            adminModal.style.display = 'flex';
+            document.getElementById('admin-password').value = '';
+            adminPanel.style.display = 'none';
+        }
+
+        function closeAdmin() {
+            adminModal.style.display = 'none';
+        }
+
+        function loginAdmin() {
+            const password = document.getElementById('admin-password').value;
+            if (password === ADMIN_PASSWORD) {
+                adminPanel.style.display = 'block';
+                updateAdminAppointmentsList('all');
+                updateFilterButtons('all');
+            } else {
+                alert('Senha incorreta!');
+            }
+        }
+
+        function cancelAppointment(appointmentId) {
+            if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
+                const appointment = appointments.find(app => app.id === appointmentId);
+                if (appointment) {
+                    appointment.status = 'cancelled';
+                    updateAdminAppointmentsList('all');
+                    updateCalendar();
+                    updateAppointmentsList();
+                    updateStats();
+                    alert('Agendamento cancelado com sucesso!');
+                }
+            }
+        }
+
+        function reactivateAppointment(appointmentId) {
+            if (confirm('Tem certeza que deseja reativar este agendamento?')) {
+                const appointment = appointments.find(app => app.id === appointmentId);
+                if (appointment) {
+                    appointment.status = 'active';
+                    updateAdminAppointmentsList('all');
+                    updateCalendar();
+                    updateAppointmentsList();
+                    updateStats();
+                    alert('Agendamento reativado com sucesso!');
+                }
+            }
+        }
+
+        function filterAppointments(filter) {
+            updateAdminAppointmentsList(filter);
+            updateFilterButtons(filter);
+        }
+
+        function updateFilterButtons(activeFilter) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Event Listeners
+        appointmentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const clientName = clientNameInput.value;
+            const startDate = serviceDateInput.value;
+            const quantity = parseInt(quantityInput.value);
+            const serviceType = serviceTypeSelect.value;
+            const estimatedDays = parseInt(estimatedDaysSpan.textContent);
+            
+            // Calcular data de término
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + estimatedDays - 1);
+            
+            // Verificar se há conflitos de agendamento (apenas com agendamentos ativos)
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            const hasConflict = appointments.some(appointment => {
+                if (appointment.status === 'active') {
+                    const appStart = new Date(appointment.startDate);
+                    const appEnd = new Date(appointment.endDate);
+                    
+                    return (start <= appEnd && end >= appStart);
+                }
+                return false;
+            });
+            
+            if (hasConflict) {
+                alert('Conflito de agendamento! Essas datas já estão ocupadas. Por favor, escolha outra data.');
+                return;
+            }
+            
+            // Criar novo agendamento
+            const newAppointment = {
+                id: appointments.length + 1,
+                clientName,
+                startDate,
+                quantity,
+                serviceType,
+                estimatedDays,
+                endDate: endDate.toISOString().split('T')[0],
+                status: 'active'
+            };
+            
+            appointments.push(newAppointment);
+            
+            // Atualizar interface
+            updateCalendar();
+            updateAppointmentsList();
+            updateStats();
+            
+            // Limpar formulário
+            appointmentForm.reset();
+            calculationResult.style.display = 'none';
+            
+            alert('Agendamento realizado com sucesso! Os dias de serviço foram bloqueados automaticamente.');
+        });
+
+        // Atualizar cálculo automaticamente quando os valores mudam
+        quantityInput.addEventListener('input', updateCalculation);
+        serviceTypeSelect.addEventListener('change', updateCalculation);
+        serviceDateInput.addEventListener('change', updateCalculation);
+
+        prevMonthBtn.addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            updateCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            updateCalendar();
+        });
+
+        // Fechar modal ao clicar fora
+        adminModal.addEventListener('click', function(e) {
+            if (e.target === adminModal) {
+                closeAdmin();
+            }
+        });
+
+        // Inicialização
+        updateCalendar();
+        updateAppointmentsList();
+        updateStats();
+    </script>
+</body>
+</html>
