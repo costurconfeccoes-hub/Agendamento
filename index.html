@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Agendamento - Costura</title>
     <style>
-        /* MANTENHA TODO O CSS IGUAL */
         :root {
             --primary-color: #4a6fa5;
             --secondary-color: #6b8cbc;
@@ -580,17 +579,11 @@
                     <div class="document-number" id="document-number">
                         Nº do Documento: Aguardando dados...
                     </div>
-                    <div class="adjustment-info" id="adjustment-info" style="display: none;">
-                        <!-- Informações de ajuste serão exibidas aqui -->
-                    </div>
                 </div>
                 
                 <div class="calculation-result" id="calculation-result">
                     <h3>Detalhes do Serviço</h3>
                     <p><strong>Dias estimados para conclusão:</strong> <span id="estimated-days">0</span> dias</p>
-                    <p><strong>Dias totais com ajustes:</strong> <span id="total-days">0</span> dias</p>
-                    <p><strong>Fórmula utilizada:</strong> (Quantidade / 40) + 1 dia</p>
-                    <p><strong>Ajustes aplicados:</strong> <span id="adjustments-text">Nenhum</span></p>
                 </div>
                 
                 <button type="submit" id="submit-btn">Agendar Serviço</button>
@@ -741,10 +734,7 @@
         const entryDatetimeSpan = document.getElementById('entry-datetime');
         const completionDatetimeSpan = document.getElementById('completion-datetime');
         const documentNumberSpan = document.getElementById('document-number');
-        const adjustmentInfoDiv = document.getElementById('adjustment-info');
-        const adjustmentsTextSpan = document.getElementById('adjustments-text');
         const estimatedDaysSpan = document.getElementById('estimated-days');
-        const totalDaysSpan = document.getElementById('total-days');
         const submitBtn = document.getElementById('submit-btn');
         const generatePdfBtn = document.getElementById('generate-pdf-btn');
         const calculationResult = document.getElementById('calculation-result');
@@ -862,7 +852,6 @@
             let currentDate = new Date(startDate);
             let workingDaysAdded = 0;
             let totalDays = daysNeeded;
-            let adjustments = [];
             
             console.log(`Calculando conclusão: ${daysNeeded} dias úteis a partir de ${startDate}`);
             
@@ -876,13 +865,11 @@
                 if (dayOfWeek === 0) {
                     workingDaysAdded += 1;
                     totalDays += 1; // Domingo adiciona 1 dia extra
-                    adjustments.push(`+1 dia (domingo ${currentDate.toLocaleDateString('pt-BR')})`);
                 } 
                 // Se for sábado (6), contar como meio dia e adicionar ajuste
                 else if (dayOfWeek === 6) {
                     workingDaysAdded += 0.75;
                     totalDays += 0.25; // Sábado adiciona 0.25 dia extra
-                    adjustments.push(`+0.25 dia (sábado ${currentDate.toLocaleDateString('pt-BR')} - 6h)`);
                 }
                 // Dias de semana normais (1-5)
                 else {
@@ -898,11 +885,9 @@
             if (finalDayOfWeek === 0) { // Domingo
                 currentDate.setDate(currentDate.getDate() + 1);
                 totalDays += 1;
-                adjustments.push(`+1 dia (finalizou no domingo)`);
             } else if (finalDayOfWeek === 6) { // Sábado
                 currentDate.setDate(currentDate.getDate() + 2);
                 totalDays += 2;
-                adjustments.push(`+2 dias (finalizou no sábado)`);
             }
             
             // Voltar um dia pois o loop avançou um dia a mais
@@ -910,7 +895,6 @@
             
             return {
                 date: currentDate,
-                adjustments: adjustments,
                 totalDays: Math.ceil(totalDays),
                 baseDays: daysNeeded
             };
@@ -926,14 +910,13 @@
             if (quantity > 0 && serviceType && startDate && selectedTimeSlot && scheduledBy) {
                 // Calcular dias usando a fórmula específica
                 const baseDays = calculateDaysNeeded(quantity);
-                estimatedDaysSpan.textContent = baseDays;
                 
                 // Calcular data de conclusão com ajustes
                 const completionResult = calculateCompletionDateWithAdjustments(startDate, baseDays);
                 const completionDate = completionResult.date;
                 
-                // Atualizar dias totais com ajustes
-                totalDaysSpan.textContent = completionResult.totalDays;
+                // Atualizar dias totais com ajustes como "dias estimados"
+                estimatedDaysSpan.textContent = completionResult.totalDays;
                 
                 // Gerar número do documento
                 currentDocumentNumber = generateDocumentNumber();
@@ -951,20 +934,6 @@
                 completionDatetimeSpan.textContent = completionDate.toLocaleDateString('pt-BR');
                 documentNumberSpan.innerHTML = `<strong>Nº do Documento:</strong> ${currentDocumentNumber}`;
                 
-                // Mostrar ajustes aplicados
-                if (completionResult.adjustments.length > 0) {
-                    adjustmentsTextSpan.textContent = completionResult.adjustments.join(', ');
-                    adjustmentInfoDiv.innerHTML = `
-                        <strong>Ajustes aplicados (${completionResult.adjustments.length}):</strong><br>
-                        ${completionResult.adjustments.map(adj => `• ${adj}`).join('<br>')}
-                        <br><strong>Total com ajustes: ${completionResult.totalDays} dias</strong>
-                    `;
-                    adjustmentInfoDiv.style.display = 'block';
-                } else {
-                    adjustmentsTextSpan.textContent = 'Nenhum';
-                    adjustmentInfoDiv.style.display = 'none';
-                }
-                
                 calculationResult.style.display = 'block';
                 generatePdfBtn.classList.remove('hidden');
             } else {
@@ -973,7 +942,6 @@
                 entryDatetimeSpan.textContent = '-';
                 completionDatetimeSpan.textContent = '-';
                 documentNumberSpan.innerHTML = '<strong>Nº do Documento:</strong> Aguardando dados...';
-                adjustmentInfoDiv.style.display = 'none';
             }
         }
 
@@ -1199,7 +1167,7 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            let clientName, scheduledBy, startDate, quantity, serviceType, estimatedDays, totalDays, entryDatetime, completionDatetime, adjustments;
+            let clientName, scheduledBy, startDate, quantity, serviceType, estimatedDays, entryDatetime, completionDatetime;
             
             if (useLastData && lastAppointmentData) {
                 // Usar dados do último agendamento
@@ -1209,10 +1177,8 @@
                 quantity = lastAppointmentData.quantity;
                 serviceType = lastAppointmentData.serviceType;
                 estimatedDays = lastAppointmentData.estimatedDays;
-                totalDays = lastAppointmentData.totalDays;
                 entryDatetime = lastAppointmentData.entryDatetime;
                 completionDatetime = lastAppointmentData.completionDatetime;
-                adjustments = lastAppointmentData.adjustments || [];
             } else {
                 // Usar dados atuais do formulário
                 clientName = clientNameInput.value;
@@ -1221,10 +1187,8 @@
                 quantity = quantityInput.value;
                 serviceType = serviceTypeSelect.value;
                 estimatedDays = estimatedDaysSpan.textContent;
-                totalDays = totalDaysSpan.textContent;
                 entryDatetime = entryDatetimeSpan.textContent;
                 completionDatetime = completionDatetimeSpan.textContent;
-                adjustments = adjustmentsTextSpan.textContent !== 'Nenhum' ? [adjustmentsTextSpan.textContent] : [];
             }
             
             // Configurações do PDF
@@ -1266,17 +1230,7 @@
             doc.setFont(undefined, 'normal');
             doc.text(`Data Estipulada para Término: ${completionDatetime}`, 20, yPosition);
             yPosition += 8;
-            doc.text(`Dias Estimados: ${estimatedDays} dias`, 20, yPosition);
-            yPosition += 8;
-            doc.text(`Dias Totais com Ajustes: ${totalDays} dias`, 20, yPosition);
-            yPosition += 8;
-            doc.text(`Fórmula utilizada: (${quantity} / 40) + 1 = ${estimatedDays} dias`, 20, yPosition);
-            
-            // Mostrar ajustes se houver
-            if (adjustments.length > 0) {
-                yPosition += 8;
-                doc.text(`Ajustes aplicados: ${adjustments.join(', ')}`, 20, yPosition);
-            }
+            doc.text(`Dias Estimados para Conclusão: ${estimatedDays} dias`, 20, yPosition);
             
             yPosition += 15;
             
@@ -1396,10 +1350,8 @@
             const quantity = parseInt(quantityInput.value);
             const serviceType = serviceTypeSelect.value;
             const estimatedDays = estimatedDaysSpan.textContent;
-            const totalDays = totalDaysSpan.textContent;
             const entryDatetime = entryDatetimeSpan.textContent;
             const completionDatetime = completionDatetimeSpan.textContent;
-            const adjustments = adjustmentsTextSpan.textContent !== 'Nenhum' ? [adjustmentsTextSpan.textContent] : [];
             
             // SALVAR OS DADOS ANTES DO RESET
             lastAppointmentData = {
@@ -1409,10 +1361,8 @@
                 quantity,
                 serviceType,
                 estimatedDays,
-                totalDays,
                 entryDatetime,
-                completionDatetime,
-                adjustments
+                completionDatetime
             };
             
             // Calcular dias usando a fórmula específica
@@ -1464,7 +1414,6 @@
             document.querySelectorAll('.time-slot.selected').forEach(slot => {
                 slot.classList.remove('selected');
             });
-            adjustmentInfoDiv.style.display = 'none';
             
             alert('Agendamento realizado com sucesso! Um PDF foi gerado com os detalhes.');
         });
