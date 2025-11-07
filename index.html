@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
+        /* Todos os estilos CSS anteriores permanecem aqui */
         * {
             margin: 0;
             padding: 0;
@@ -26,6 +27,7 @@
             --warning-color: #f39c12;
             --danger-color: #e74c3c;
             --admin-color: #8e44ad;
+            --completed-color: #27ae60;
         }
 
         body {
@@ -282,7 +284,7 @@
         }
 
         .btn-correct {
-            background: var(--success-color);
+            background: var(--warning-color);
             padding: 8px 15px;
             font-size: 0.9rem;
             width: auto;
@@ -299,6 +301,14 @@
 
         .btn-download {
             background: var(--secondary);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .btn-complete {
+            background: var(--completed-color);
             padding: 8px 15px;
             font-size: 0.9rem;
             width: auto;
@@ -438,7 +448,7 @@
         }
         
         .status-completed {
-            background-color: var(--success-color);
+            background-color: var(--completed-color);
             color: white;
         }
         
@@ -1042,15 +1052,22 @@
             <div class="card">
                 <h2><i class="fas fa-list"></i> Agendamentos</h2>
                 
-                <!-- Tabs para Agendamentos Ativos e Cancelados -->
+                <!-- Tabs para Agendamentos Ativos, Realizados e Cancelados -->
                 <div class="tabs">
                     <button class="tab active" data-tab="active">Agendamentos Ativos</button>
+                    <button class="tab" data-tab="completed">Agendamentos Realizados</button>
                     <button class="tab" data-tab="cancelled">Agendamentos Cancelados</button>
                 </div>
                 
                 <div class="tab-content active" id="active-appointments">
                     <div class="appointments-list" id="appointments-list">
                         <!-- Agendamentos ativos serão gerados via JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="completed-appointments">
+                    <div class="appointments-list" id="completed-list">
+                        <!-- Agendamentos realizados serão gerados via JavaScript -->
                     </div>
                 </div>
                 
@@ -1123,6 +1140,7 @@
                 <div class="filter-buttons">
                     <button class="filter-btn active" data-filter="all">Todos</button>
                     <button class="filter-btn" data-filter="active">Ativos</button>
+                    <button class="filter-btn" data-filter="completed">Realizados</button>
                     <button class="filter-btn" data-filter="cancelled">Cancelados</button>
                 </div>
                 
@@ -1138,17 +1156,10 @@
         let appointments = JSON.parse(localStorage.getItem('appointments')) || [];
         let bookedDates = JSON.parse(localStorage.getItem('bookedDates')) || {};
         let currentEditingIndex = null;
-
-        // Função para obter a data atual no fuso horário de Brasília
-        function getBrasiliaDate() {
-            const now = new Date();
-            const offset = -3 * 60;
-            const brasiliaTime = new Date(now.getTime() + (offset + now.getTimezoneOffset()) * 60000);
-            return brasiliaTime;
-        }
+        let currentFilter = 'all';
 
         // Variáveis globais para o calendário
-        let currentDate = getBrasiliaDate();
+        let currentDate = new Date();
         let currentMonth = currentDate.getMonth();
         let currentYear = currentDate.getFullYear();
 
@@ -1409,7 +1420,7 @@
         
         function verifyAdminPassword() {
             const password = document.getElementById('admin-password').value;
-            if (password === "admin123") {
+            if (password === "CosturADM2023") {
                 document.getElementById('admin-content').classList.remove('hidden');
                 document.getElementById('admin-login').classList.add('hidden');
                 loadAdminAppointments();
@@ -1429,12 +1440,20 @@
             let adminAppointmentsHTML = '';
             
             appointments.forEach((appointment, index) => {
+                // Aplicar filtro
+                if (currentFilter !== 'all' && appointment.status !== currentFilter) {
+                    return;
+                }
+                
                 let statusClass = 'status-booked';
                 let statusText = 'Agendado';
                 
                 if (appointment.status === 'cancelled') {
                     statusClass = 'status-cancelled';
                     statusText = 'Cancelado';
+                } else if (appointment.status === 'completed') {
+                    statusClass = 'status-completed';
+                    statusText = 'Realizado';
                 }
                 
                 adminAppointmentsHTML += `
@@ -1448,8 +1467,11 @@
                             <div class="appointment-status ${statusClass}">${statusText}</div>
                         </div>
                         <div class="appointment-actions">
-                            <button class="btn-correct" onclick="showCorrectionForm(${index})">Corrigir</button>
-                            <button class="btn-cancel" onclick="cancelAppointment(${index})">Cancelar</button>
+                            ${appointment.status === 'active' ? `
+                                <button class="btn-complete" onclick="completeAppointment(${index})">Marcar como Realizado</button>
+                                <button class="btn-correct" onclick="showCorrectionForm(${index})">Corrigir</button>
+                                <button class="btn-cancel" onclick="cancelAppointment(${index})">Cancelar</button>
+                            ` : ''}
                             <button class="btn-delete" onclick="deleteAppointment(${index})">Excluir</button>
                         </div>
                     </div>
@@ -1457,6 +1479,18 @@
             });
             
             adminAppointmentsContainer.innerHTML = adminAppointmentsHTML;
+        }
+
+        // Função para marcar agendamento como realizado
+        function completeAppointment(index) {
+            if (confirm('Tem certeza que deseja marcar este agendamento como realizado?')) {
+                appointments[index].status = 'completed';
+                localStorage.setItem('appointments', JSON.stringify(appointments));
+                loadAdminAppointments();
+                loadAppointmentsList();
+                updateStats();
+                alert('Agendamento marcado como realizado!');
+            }
         }
         
         function cancelAppointment(index) {
@@ -1499,9 +1533,11 @@
         // Função para carregar agendamentos na lista principal
         function loadAppointmentsList() {
             const activeAppointmentsContainer = document.getElementById('appointments-list');
+            const completedAppointmentsContainer = document.getElementById('completed-list');
             const cancelledAppointmentsContainer = document.getElementById('cancelled-list');
             
-            const activeAppointments = appointments.filter(a => a.status !== 'cancelled');
+            const activeAppointments = appointments.filter(a => a.status === 'active');
+            const completedAppointments = appointments.filter(a => a.status === 'completed');
             const cancelledAppointments = appointments.filter(a => a.status === 'cancelled');
             
             // Agendamentos Ativos
@@ -1528,6 +1564,26 @@
                     `;
                 });
                 activeAppointmentsContainer.innerHTML = activeHTML;
+            }
+            
+            // Agendamentos Realizados
+            if (completedAppointments.length === 0) {
+                completedAppointmentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum agendamento realizado encontrado.</p>';
+            } else {
+                let completedHTML = '';
+                completedAppointments.forEach((appointment, index) => {
+                    completedHTML += `
+                        <div class="appointment-item">
+                            <div class="appointment-details">
+                                <h4>${appointment.clientName}</h4>
+                                <p><strong>Data:</strong> ${appointment.serviceDate} às ${appointment.serviceTime}</p>
+                                <p><strong>Peças:</strong> ${appointment.quantity} | <strong>Tipo:</strong> ${appointment.serviceType}</p>
+                                <div class="appointment-status status-completed">Realizado</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                completedAppointmentsContainer.innerHTML = completedHTML;
             }
             
             // Agendamentos Cancelados
@@ -1557,68 +1613,83 @@
             generateAppointmentPDF(appointment);
         }
         
-        // Função para gerar o calendário
+        // Função para gerar o calendário - CORRIGIDA
         function generateCalendar(month, year) {
-            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                               "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            
-            document.getElementById('current-month').textContent = `${monthNames[month]} ${year}`;
-            
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
-            const today = getBrasiliaDate();
-            const currentDay = today.getDate();
-            const currentMonthToday = today.getMonth();
-            const currentYearToday = today.getFullYear();
-            
-            const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-            let calendarHTML = '';
-            
-            dayNames.forEach(day => {
-                calendarHTML += `<div class="calendar-day header">${day}</div>`;
-            });
-            
-            for (let i = 0; i < firstDay; i++) {
-                calendarHTML += `<div class="calendar-day unavailable"></div>`;
-            }
-            
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                let dayClass = "calendar-day available";
+            try {
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                                   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
                 
-                if (bookedDates[dateKey]) {
-                    dayClass = "calendar-day booked";
-                }
+                document.getElementById('current-month').textContent = `${monthNames[month]} ${year}`;
                 
-                if (day === currentDay && month === currentMonthToday && year === currentYearToday) {
-                    dayClass += " today";
-                }
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
                 
-                if (new Date(year, month, day).getDay() === 0) {
-                    dayClass += " sunday";
-                }
+                const today = new Date();
+                const currentDay = today.getDate();
+                const currentMonthToday = today.getMonth();
+                const currentYearToday = today.getFullYear();
                 
-                if (new Date(year, month, day).getDay() === 6) {
-                    dayClass += " saturday";
-                }
+                const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+                let calendarHTML = '';
                 
-                calendarHTML += `<div class="${dayClass}" data-day="${day}" data-month="${month}" data-year="${year}">${day}</div>`;
-            }
-            
-            document.getElementById('calendar-days').innerHTML = calendarHTML;
-            
-            document.querySelectorAll('.calendar-day.available').forEach(day => {
-                day.addEventListener('click', function() {
-                    const selectedDay = this.getAttribute('data-day');
-                    const selectedMonth = parseInt(this.getAttribute('data-month')) + 1;
-                    const selectedYear = this.getAttribute('data-year');
-                    
-                    const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${selectedDay.padStart(2, '0')}`;
-                    document.getElementById('service-date').value = formattedDate;
-                    updateTimeSlots();
+                // Cabeçalho com dias da semana
+                dayNames.forEach(day => {
+                    calendarHTML += `<div class="calendar-day header">${day}</div>`;
                 });
-            });
+                
+                // Dias vazios no início
+                for (let i = 0; i < firstDay; i++) {
+                    calendarHTML += `<div class="calendar-day unavailable"></div>`;
+                }
+                
+                // Dias do mês
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                    let dayClass = "calendar-day available";
+                    
+                    // Verifica se está ocupado
+                    if (bookedDates[dateKey]) {
+                        dayClass = "calendar-day booked";
+                    }
+                    
+                    // Verifica se é hoje
+                    if (day === currentDay && month === currentMonthToday && year === currentYearToday) {
+                        dayClass += " today";
+                    }
+                    
+                    // Verifica se é domingo
+                    if (new Date(year, month, day).getDay() === 0) {
+                        dayClass += " sunday";
+                    }
+                    
+                    // Verifica se é sábado
+                    if (new Date(year, month, day).getDay() === 6) {
+                        dayClass += " saturday";
+                    }
+                    
+                    calendarHTML += `<div class="${dayClass}" data-day="${day}" data-month="${month}" data-year="${year}">${day}</div>`;
+                }
+                
+                document.getElementById('calendar-days').innerHTML = calendarHTML;
+                
+                // Adiciona eventos de clique aos dias disponíveis
+                document.querySelectorAll('.calendar-day.available').forEach(day => {
+                    day.addEventListener('click', function() {
+                        const selectedDay = this.getAttribute('data-day');
+                        const selectedMonth = parseInt(this.getAttribute('data-month')) + 1;
+                        const selectedYear = this.getAttribute('data-year');
+                        
+                        const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${selectedDay.padStart(2, '0')}`;
+                        document.getElementById('service-date').value = formattedDate;
+                        updateTimeSlots();
+                    });
+                });
+                
+            } catch (error) {
+                console.error("Erro ao gerar calendário:", error);
+                document.getElementById('current-month').textContent = "Erro ao carregar";
+                document.getElementById('calendar-days').innerHTML = '<div class="calendar-day">Erro</div>';
+            }
         }
         
         // Função para atualizar os horários disponíveis
@@ -1673,9 +1744,9 @@
         
         // Função para atualizar estatísticas
         function updateStats() {
-            const activeAppointments = appointments.filter(a => a.status !== 'cancelled').length;
+            const activeAppointments = appointments.filter(a => a.status === 'active').length;
             const totalPieces = appointments.reduce((sum, appointment) => {
-                if (appointment.status !== 'cancelled') {
+                if (appointment.status === 'active') {
                     return sum + parseInt(appointment.quantity);
                 }
                 return sum;
@@ -1683,7 +1754,7 @@
             
             const uniqueDates = new Set();
             appointments.forEach(appointment => {
-                if (appointment.status !== 'cancelled') {
+                if (appointment.status === 'active') {
                     uniqueDates.add(appointment.serviceDate);
                 }
             });
@@ -1699,7 +1770,7 @@
             generateCalendar(currentMonth, currentYear);
             
             // Define a data mínima para o campo de data como hoje
-            const today = getBrasiliaDate();
+            const today = new Date();
             const minDate = today.toISOString().split('T')[0];
             document.getElementById('service-date').min = minDate;
             
@@ -1805,6 +1876,22 @@
                     // Mostra o conteúdo correspondente
                     const tabId = this.getAttribute('data-tab');
                     document.getElementById(`${tabId}-appointments`).classList.add('active');
+                });
+            });
+            
+            // Sistema de filtros na área administrativa
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove a classe active de todos os botões
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    // Adiciona a classe active ao botão clicado
+                    this.classList.add('active');
+                    
+                    // Define o filtro atual
+                    currentFilter = this.getAttribute('data-filter');
+                    
+                    // Atualiza a lista de agendamentos
+                    loadAdminAppointments();
                 });
             });
             
