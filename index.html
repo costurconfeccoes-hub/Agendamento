@@ -6,6 +6,9 @@
     <title>Costur Confecções - Sistema de Agendamento</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Adicionar Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <style>
         /* Todos os estilos CSS anteriores permanecem aqui */
         * {
@@ -804,6 +807,34 @@
             display: block;
         }
 
+        .sync-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-online {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .sync-offline {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .sync-error {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .calendar-container {
                 grid-template-columns: 1fr;
@@ -860,6 +891,12 @@
             .correction-actions {
                 flex-direction: column;
             }
+
+            .sync-status {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -887,6 +924,12 @@
     </style>
 </head>
 <body>
+    <!-- Status de Sincronização -->
+    <div class="sync-status sync-online" id="sync-status">
+        <i class="fas fa-cloud"></i>
+        <span>Conectado à nuvem</span>
+    </div>
+
     <!-- Header -->
     <header>
         <div class="container header-content">
@@ -1152,17 +1195,154 @@
     </div>
 
     <script>
-        // Armazenamento de agendamentos
-        let appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-        let bookedDates = JSON.parse(localStorage.getItem('bookedDates')) || {};
+        // ================= CONFIGURAÇÃO FIREBASE =================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAc1iUDZEjyDOtrY9UT_idP5_TGODIsc9E",
+            authDomain: "costur-agendamentos.firebaseapp.com",
+            projectId: "costur-agendamentos",
+            storageBucket: "costur-agendamentos.firebasestorage.app",
+            messagingSenderId: "948222283708",
+            appId: "1:948222283708:web:a82876883f247e51ede5b9"
+        };
+
+        // Inicializar Firebase
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log("Firebase conectado com sucesso!");
+        } catch (error) {
+            console.error("Erro ao conectar com Firebase:", error);
+        }
+
+        // ================= VARIÁVEIS GLOBAIS =================
+        let appointments = [];
+        let bookedDates = {};
         let currentEditingIndex = null;
         let currentFilter = 'all';
-
-        // Variáveis globais para o calendário
         let currentDate = new Date();
         let currentMonth = currentDate.getMonth();
         let currentYear = currentDate.getFullYear();
 
+        // ================= FUNÇÕES FIREBASE =================
+        // Carregar agendamentos do Firebase
+        async function loadAppointmentsFromFirebase() {
+            try {
+                showSyncStatus('online', 'Sincronizando com a nuvem...');
+                const snapshot = await db.collection('appointments').orderBy('createdAt', 'desc').get();
+                appointments = [];
+                snapshot.forEach(doc => {
+                    appointments.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Carregar datas ocupadas
+                const datesSnapshot = await db.collection('bookedDates').doc('dates').get();
+                bookedDates = datesSnapshot.exists ? datesSnapshot.data() : {};
+                
+                updateUI();
+                showSyncStatus('online', 'Conectado à nuvem');
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                showSyncStatus('error', 'Erro ao sincronizar');
+                // Tentar carregar do localStorage como fallback
+                loadFromLocalStorage();
+            }
+        }
+
+        // Salvar agendamento no Firebase
+        async function saveAppointmentToFirebase(appointment) {
+            try {
+                const docRef = await db.collection('appointments').add(appointment);
+                appointment.id = docRef.id;
+                
+                // Atualizar datas ocupadas
+                await db.collection('bookedDates').doc('dates').set(bookedDates);
+                
+                showSyncStatus('online', 'Dados salvos na nuvem');
+                return true;
+            } catch (error) {
+                console.error('Erro ao salvar no Firebase:', error);
+                showSyncStatus('error', 'Erro ao salvar');
+                saveToLocalStorage();
+                return false;
+            }
+        }
+
+        // Atualizar agendamento no Firebase
+        async function updateAppointmentInFirebase(index) {
+            try {
+                const appointment = appointments[index];
+                await db.collection('appointments').doc(appointment.id).update(appointment);
+                await db.collection('bookedDates').doc('dates').set(bookedDates);
+                showSyncStatus('online', 'Dados atualizados na nuvem');
+                return true;
+            } catch (error) {
+                console.error('Erro ao atualizar no Firebase:', error);
+                showSyncStatus('error', 'Erro ao atualizar');
+                saveToLocalStorage();
+                return false;
+            }
+        }
+
+        // Excluir agendamento do Firebase
+        async function deleteAppointmentFromFirebase(id) {
+            try {
+                await db.collection('appointments').doc(id).delete();
+                await db.collection('bookedDates').doc('dates').set(bookedDates);
+                showSyncStatus('online', 'Dados removidos da nuvem');
+                return true;
+            } catch (error) {
+                console.error('Erro ao excluir do Firebase:', error);
+                showSyncStatus('error', 'Erro ao excluir');
+                saveToLocalStorage();
+                return false;
+            }
+        }
+
+        // ================= FUNÇÕES LOCAIS (BACKUP) =================
+        function saveToLocalStorage() {
+            localStorage.setItem('appointments', JSON.stringify(appointments));
+            localStorage.setItem('bookedDates', JSON.stringify(bookedDates));
+        }
+
+        function loadFromLocalStorage() {
+            const savedAppointments = localStorage.getItem('appointments');
+            const savedBookedDates = localStorage.getItem('bookedDates');
+            
+            if (savedAppointments) {
+                appointments = JSON.parse(savedAppointments);
+            }
+            if (savedBookedDates) {
+                bookedDates = JSON.parse(savedBookedDates);
+            }
+            
+            updateUI();
+            showSyncStatus('offline', 'Modo offline - dados locais');
+        }
+
+        // ================= FUNÇÕES DE SINCRONIZAÇÃO =================
+        function showSyncStatus(type, message) {
+            const statusElement = document.getElementById('sync-status');
+            statusElement.className = `sync-status sync-${type}`;
+            statusElement.innerHTML = `<i class="fas fa-cloud"></i><span>${message}</span>`;
+            
+            if (type === 'online') {
+                setTimeout(() => {
+                    statusElement.style.opacity = '0.7';
+                }, 3000);
+            }
+        }
+
+        function updateUI() {
+            loadAppointmentsList();
+            updateStats();
+            generateCalendar(currentMonth, currentYear);
+            if (document.getElementById('admin-content').classList.contains('hidden') === false) {
+                loadAdminAppointments();
+            }
+        }
+
+        // ================= FUNÇÕES EXISTENTES DO SISTEMA =================
         // Função para calcular dias estimados considerando finais de semana
         function calculateEstimatedDays(startDate, quantity) {
             let baseDays = (quantity / 45) + 1;
@@ -1207,7 +1387,7 @@
                 bookedDates[dateKey] = true;
             }
             
-            localStorage.setItem('bookedDates', JSON.stringify(bookedDates));
+            saveToLocalStorage();
         }
 
         // Função para gerar PDF do agendamento
@@ -1215,11 +1395,9 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Formata a data para o nome do arquivo
             const dateForFilename = appointment.serviceDate.split('-').reverse().join('-');
             const filename = `${appointment.clientName} - ${dateForFilename}.pdf`;
             
-            // Adiciona conteúdo ao PDF
             doc.setFontSize(20);
             doc.setTextColor(44, 62, 80);
             doc.text('Costur Confecções', 105, 20, { align: 'center' });
@@ -1233,7 +1411,6 @@
             
             let yPosition = 60;
             
-            // Informações do agendamento
             doc.text(`Cliente: ${appointment.clientName}`, 20, yPosition);
             yPosition += 10;
             
@@ -1262,13 +1439,11 @@
             doc.text(`Nº do Documento: ${appointment.documentNumber || 'DOC-' + appointment.id.toString().slice(-6)}`, 20, yPosition);
             yPosition += 20;
             
-            // Rodapé
             doc.setFontSize(10);
             doc.setTextColor(100, 100, 100);
             doc.text('Costur Confecções - Sua marca, nossa costura', 105, 280, { align: 'center' });
             doc.text('Rua professor ferrucio, 436, São Francisco - Caruaru/PE', 105, 285, { align: 'center' });
             
-            // Salva o PDF
             doc.save(filename);
         }
 
@@ -1330,14 +1505,11 @@
                 </div>
             `;
             
-            // Remove qualquer formulário de correção existente
             document.querySelectorAll('.correction-form').forEach(form => form.remove());
             
-            // Adiciona o novo formulário após o item do agendamento
             const appointmentItem = document.querySelector(`[data-appointment-index="${index}"]`);
             appointmentItem.insertAdjacentHTML('afterend', correctionFormHTML);
             
-            // Adiciona eventos aos time slots
             document.querySelectorAll(`#correction-time-slots-${index} .time-slot`).forEach(slot => {
                 slot.addEventListener('click', function() {
                     document.querySelectorAll(`#correction-time-slots-${index} .time-slot.selected`).forEach(s => {
@@ -1362,10 +1534,9 @@
         }
 
         // Função para salvar correção
-        function saveCorrection(index) {
+        async function saveCorrection(index) {
             const appointment = appointments[index];
             
-            // Coleta os novos valores
             const scheduledBy = document.getElementById(`correction-scheduled-by-${index}`).value;
             const serviceDate = document.getElementById(`correction-service-date-${index}`).value;
             const quantity = document.getElementById(`correction-quantity-${index}`).value;
@@ -1379,7 +1550,15 @@
             
             const serviceTime = selectedTimeElement.getAttribute('data-time');
             
-            // Atualiza o agendamento
+            // Remover datas antigas
+            const oldStartDate = new Date(appointment.serviceDate);
+            for (let i = 0; i < appointment.estimatedDays; i++) {
+                const currentDate = new Date(oldStartDate);
+                currentDate.setDate(oldStartDate.getDate() + i);
+                const dateKey = currentDate.toISOString().split('T')[0];
+                delete bookedDates[dateKey];
+            }
+            
             appointment.scheduledBy = scheduledBy;
             appointment.serviceDate = serviceDate;
             appointment.quantity = quantity;
@@ -1387,18 +1566,16 @@
             appointment.serviceTime = serviceTime;
             appointment.estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
             
-            // Atualiza o localStorage
-            localStorage.setItem('appointments', JSON.stringify(appointments));
+            // Marcar novas datas
+            markDaysAsBooked(serviceDate, appointment.estimatedDays);
             
-            // Atualiza a interface
-            loadAdminAppointments();
-            loadAppointmentsList();
-            updateStats();
+            const success = await updateAppointmentInFirebase(index);
             
-            // Remove o formulário de correção
-            document.getElementById(`correction-form-${index}`).remove();
-            
-            alert('Correção salva com sucesso!');
+            if (success) {
+                updateUI();
+                document.getElementById(`correction-form-${index}`).remove();
+                alert('Correção salva com sucesso!');
+            }
         }
 
         // Função para cancelar correção
@@ -1439,8 +1616,7 @@
             
             let adminAppointmentsHTML = '';
             
-            appointments.forEach((appointment, index) => {
-                // Aplicar filtro
+            appointments.forEach((appointment, index) {
                 if (currentFilter !== 'all' && appointment.status !== currentFilter) {
                     return;
                 }
@@ -1482,51 +1658,52 @@
         }
 
         // Função para marcar agendamento como realizado
-        function completeAppointment(index) {
+        async function completeAppointment(index) {
             if (confirm('Tem certeza que deseja marcar este agendamento como realizado?')) {
                 appointments[index].status = 'completed';
-                localStorage.setItem('appointments', JSON.stringify(appointments));
-                loadAdminAppointments();
-                loadAppointmentsList();
-                updateStats();
-                alert('Agendamento marcado como realizado!');
+                const success = await updateAppointmentInFirebase(index);
+                
+                if (success) {
+                    loadAdminAppointments();
+                    loadAppointmentsList();
+                    updateStats();
+                    alert('Agendamento marcado como realizado!');
+                }
             }
         }
         
-        function cancelAppointment(index) {
+        async function cancelAppointment(index) {
             if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
                 appointments[index].status = 'cancelled';
-                localStorage.setItem('appointments', JSON.stringify(appointments));
-                loadAdminAppointments();
-                loadAppointmentsList();
-                alert('Agendamento cancelado com sucesso!');
+                const success = await updateAppointmentInFirebase(index);
+                
+                if (success) {
+                    loadAdminAppointments();
+                    loadAppointmentsList();
+                    alert('Agendamento cancelado com sucesso!');
+                }
             }
         }
         
-        function deleteAppointment(index) {
+        async function deleteAppointment(index) {
             if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-                const deletedAppointment = appointments[index];
+                const appointmentId = appointments[index].id;
+                const success = await deleteAppointmentFromFirebase(appointmentId);
                 
-                // Remove as datas dos dias ocupados
-                const startDate = new Date(deletedAppointment.serviceDate);
-                for (let i = 0; i < deletedAppointment.estimatedDays; i++) {
-                    const currentDate = new Date(startDate);
-                    currentDate.setDate(startDate.getDate() + i);
-                    const dateKey = currentDate.toISOString().split('T')[0];
-                    delete bookedDates[dateKey];
+                if (success) {
+                    const deletedAppointment = appointments[index];
+                    const startDate = new Date(deletedAppointment.serviceDate);
+                    for (let i = 0; i < deletedAppointment.estimatedDays; i++) {
+                        const currentDate = new Date(startDate);
+                        currentDate.setDate(startDate.getDate() + i);
+                        const dateKey = currentDate.toISOString().split('T')[0];
+                        delete bookedDates[dateKey];
+                    }
+                    
+                    appointments.splice(index, 1);
+                    updateUI();
+                    alert('Agendamento excluído com sucesso!');
                 }
-                
-                localStorage.setItem('bookedDates', JSON.stringify(bookedDates));
-                
-                appointments.splice(index, 1);
-                localStorage.setItem('appointments', JSON.stringify(appointments));
-                
-                // Atualiza a interface
-                loadAdminAppointments();
-                loadAppointmentsList();
-                generateCalendar(currentMonth, currentYear);
-                updateStats();
-                alert('Agendamento excluído com sucesso!');
             }
         }
 
@@ -1546,6 +1723,7 @@
             } else {
                 let activeHTML = '';
                 activeAppointments.forEach((appointment, index) => {
+                    const originalIndex = appointments.findIndex(a => a.id === appointment.id);
                     activeHTML += `
                         <div class="appointment-item">
                             <div class="appointment-details">
@@ -1556,7 +1734,7 @@
                                 <div class="appointment-status status-booked">Agendado</div>
                             </div>
                             <div class="appointment-actions">
-                                <button class="btn-download" onclick="downloadAppointmentPDF(${appointments.indexOf(appointment)})">
+                                <button class="btn-download" onclick="downloadAppointmentPDF(${originalIndex})">
                                     <i class="fas fa-download"></i> PDF
                                 </button>
                             </div>
@@ -1613,7 +1791,7 @@
             generateAppointmentPDF(appointment);
         }
         
-        // Função para gerar o calendário - CORRIGIDA
+        // Função para gerar o calendário
         function generateCalendar(month, year) {
             try {
                 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -1766,6 +1944,9 @@
         
         // Inicialização do sistema
         document.addEventListener('DOMContentLoaded', function() {
+            // Carregar dados do Firebase
+            loadAppointmentsFromFirebase();
+            
             // Gera o calendário inicial
             generateCalendar(currentMonth, currentYear);
             
@@ -1799,8 +1980,8 @@
             // Atualiza as informações quando a quantidade é alterada
             document.getElementById('quantity').addEventListener('change', updateScheduleInfo);
             
-            // Adiciona evento de envio do formulário
-            document.getElementById('appointment-form').addEventListener('submit', function(e) {
+            // MODIFICADO: Agora usa Firebase
+            document.getElementById('appointment-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const clientName = document.getElementById('client-name').value;
@@ -1815,13 +1996,10 @@
                     return;
                 }
                 
-                // Calcula os dias estimados
                 const estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
                 const documentNumber = `DOC-${Date.now().toString().slice(-6)}`;
                 
-                // Cria o agendamento
                 const newAppointment = {
-                    id: Date.now(),
                     clientName,
                     scheduledBy,
                     serviceDate,
@@ -1834,46 +2012,38 @@
                     createdAt: new Date().toISOString()
                 };
                 
-                // Adiciona ao array de agendamentos
-                appointments.push(newAppointment);
-                localStorage.setItem('appointments', JSON.stringify(appointments));
+                // Salvar no Firebase
+                const success = await saveAppointmentToFirebase(newAppointment);
                 
-                // Marca os dias como ocupados no calendário
-                markDaysAsBooked(serviceDate, estimatedDays);
-                
-                // Gera o PDF automaticamente
-                generateAppointmentPDF(newAppointment);
-                
-                // Atualiza a interface
-                generateCalendar(currentMonth, currentYear);
-                loadAppointmentsList();
-                updateStats();
-                
-                alert('Agendamento realizado com sucesso! O PDF foi baixado automaticamente.');
-                
-                // Limpa o formulário
-                document.getElementById('appointment-form').reset();
-                document.getElementById('time-slots').innerHTML = '';
-                document.getElementById('entry-datetime').textContent = '-';
-                document.getElementById('completion-datetime').textContent = '-';
-                document.getElementById('document-number').textContent = 'Nº do Documento: Aguardando dados...';
-                document.getElementById('estimated-days').textContent = '0';
+                if (success) {
+                    appointments.push(newAppointment);
+                    markDaysAsBooked(serviceDate, estimatedDays);
+                    generateAppointmentPDF(newAppointment);
+                    updateUI();
+                    
+                    alert('Agendamento realizado com sucesso! O PDF foi baixado automaticamente.');
+                    
+                    document.getElementById('appointment-form').reset();
+                    document.getElementById('time-slots').innerHTML = '';
+                    document.getElementById('entry-datetime').textContent = '-';
+                    document.getElementById('completion-datetime').textContent = '-';
+                    document.getElementById('document-number').textContent = 'Nº do Documento: Aguardando dados...';
+                    document.getElementById('estimated-days').textContent = '0';
+                } else {
+                    alert('Erro ao salvar agendamento. Verifique sua conexão.');
+                }
             });
             
             // Sistema de tabs
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
-                    // Remove a classe active de todas as tabs
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    // Adiciona a classe active à tab clicada
                     this.classList.add('active');
                     
-                    // Esconde todos os conteúdos
                     document.querySelectorAll('.tab-content').forEach(content => {
                         content.classList.remove('active');
                     });
                     
-                    // Mostra o conteúdo correspondente
                     const tabId = this.getAttribute('data-tab');
                     document.getElementById(`${tabId}-appointments`).classList.add('active');
                 });
@@ -1882,22 +2052,13 @@
             // Sistema de filtros na área administrativa
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    // Remove a classe active de todos os botões
                     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    // Adiciona a classe active ao botão clicado
                     this.classList.add('active');
                     
-                    // Define o filtro atual
                     currentFilter = this.getAttribute('data-filter');
-                    
-                    // Atualiza a lista de agendamentos
                     loadAdminAppointments();
                 });
             });
-            
-            // Atualiza estatísticas iniciais e lista de agendamentos
-            updateStats();
-            loadAppointmentsList();
         });
     </script>
 </body>
