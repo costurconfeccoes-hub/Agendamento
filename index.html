@@ -668,10 +668,12 @@
 
         .modal-content {
             background-color: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 10px;
             width: 90%;
-            max-width: 600px;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             position: relative;
         }
@@ -690,6 +692,7 @@
             margin: 0;
             display: flex;
             align-items: center;
+            font-size: 1.3rem;
         }
 
         .modal-header h2 i {
@@ -1046,8 +1049,8 @@
         let currentMonth = currentDate.getMonth();
         let currentYear = currentDate.getFullYear();
 
-        // Senha para edição (substitua por uma senha real)
-        const EDIT_PASSWORD = "costurADM2023";
+        // Senha para edição
+        const EDIT_PASSWORD = "CosturADM2023";
 
         // Função para carregar agendamentos do Firestore
         async function loadAppointmentsFromFirestore() {
@@ -1061,10 +1064,10 @@
                 // Atualizar a interface
                 loadAppointmentsList();
                 updateStats();
-                generateCalendar(currentMonth, currentYear);
+                updateBookedDates(); // Atualizar bookedDates primeiro
+                generateCalendar(currentMonth, currentYear); // Depois gerar calendário
                 
-                // Atualizar bookedDates
-                updateBookedDates();
+                console.log("Agendamentos carregados:", appointments.length);
             } catch (error) {
                 console.error("Erro ao carregar agendamentos:", error);
             }
@@ -1091,24 +1094,15 @@
             }
         }
 
-        // Função para excluir agendamento do Firestore
-        async function deleteAppointmentFromFirestore(id) {
-            try {
-                await db.collection('appointments').doc(id).delete();
-            } catch (error) {
-                console.error("Erro ao excluir agendamento:", error);
-                throw error;
-            }
-        }
-
         // Função para atualizar bookedDates
         function updateBookedDates() {
             bookedDates = {};
             appointments.forEach(appointment => {
                 if (appointment.status === 'active' || appointment.status === 'in-production') {
                     const start = new Date(appointment.serviceDate);
+                    const estimatedDays = appointment.estimatedDays || calculateEstimatedDays(appointment.serviceDate, appointment.quantity);
                     
-                    for (let i = 0; i < appointment.estimatedDays; i++) {
+                    for (let i = 0; i < estimatedDays; i++) {
                         const currentDate = new Date(start);
                         currentDate.setDate(start.getDate() + i);
                         
@@ -1117,6 +1111,7 @@
                     }
                 }
             });
+            console.log("Datas ocupadas atualizadas:", Object.keys(bookedDates).length);
         }
 
         // Função para calcular dias estimados considerando finais de semana
@@ -1164,6 +1159,7 @@
             }
             
             updateBookedDates();
+            generateCalendar(currentMonth, currentYear); // Atualizar calendário imediatamente
         }
 
         // Função para gerar comprovante do agendamento em PNG
@@ -1332,7 +1328,8 @@
                 serviceType: serviceType,
                 serviceTime: serviceTime,
                 status: status,
-                estimatedDays: estimatedDays
+                estimatedDays: estimatedDays,
+                updatedAt: new Date().toISOString()
             };
             
             try {
@@ -1340,6 +1337,9 @@
                 
                 // Atualiza o agendamento local
                 Object.assign(appointment, updates);
+                
+                // Atualiza as datas ocupadas
+                updateBookedDates();
                 
                 // Atualiza a interface
                 loadAppointmentsList();
@@ -1641,7 +1641,6 @@
                     generateAppointmentPNG(newAppointment);
                     
                     // Atualiza a interface
-                    generateCalendar(currentMonth, currentYear);
                     loadAppointmentsList();
                     updateStats();
                     
