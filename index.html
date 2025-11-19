@@ -609,7 +609,7 @@
             color: #aaa;
         }
 
-        /* Modal Único */
+        /* Modal para Ver Detalhes */
         .modal {
             display: none;
             position: fixed;
@@ -656,25 +656,35 @@
             background: #c0392b;
         }
 
-        .modal-actions {
+        /* Form de Edição de Status */
+        .edit-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .edit-form h4 {
+            color: var(--warning-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .edit-actions {
             display: flex;
             gap: 10px;
             margin-top: 20px;
-            justify-content: flex-end;
         }
 
         .password-prompt {
             background: #fff3cd;
             padding: 15px;
             border-radius: 5px;
-            margin-top: 15px;
+            margin-top: 10px;
             border-left: 4px solid var(--warning-color);
-        }
-
-        .edit-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
         }
 
         /* Remover todas as media queries para mobile */
@@ -886,20 +896,16 @@
         </div>
     </footer>
 
-    <!-- Modal Único -->
-    <div class="modal" id="appointment-modal">
+    <!-- Modal para Ver Detalhes -->
+    <div class="modal" id="view-modal">
         <div class="modal-content">
-            <h2 id="modal-title"><i class="fas fa-eye"></i> Detalhes do Agendamento</h2>
-            <button class="close-modal" onclick="closeModal()">
+            <h2><i class="fas fa-eye"></i> Detalhes do Agendamento</h2>
+            <button class="close-modal" onclick="closeViewModal()">
                 <i class="fas fa-times"></i> Fechar
             </button>
             
-            <div id="modal-content-area">
-                <!-- Conteúdo do modal será preenchido via JavaScript -->
-            </div>
-            
-            <div class="modal-actions" id="modal-actions">
-                <!-- Ações do modal serão preenchidas via JavaScript -->
+            <div id="view-appointment-details">
+                <!-- Detalhes do agendamento serão preenchidos via JavaScript -->
             </div>
         </div>
     </div>
@@ -922,7 +928,7 @@
         // Armazenamento de agendamentos
         let appointments = [];
         let bookedDates = {};
-        let currentAppointmentIndex = null;
+        let currentEditingIndex = null;
 
         // Variáveis globais para o calendário
         let currentDate = new Date();
@@ -1126,9 +1132,8 @@
             }
         }
 
-        // Função para abrir modal com detalhes do agendamento
+        // Função para mostrar detalhes do agendamento
         function showAppointmentDetails(index) {
-            currentAppointmentIndex = index;
             const appointment = appointments[index];
             
             let statusClass = 'status-booked';
@@ -1160,72 +1165,65 @@
                 </div>
             `;
             
-            const actionsHTML = `
-                <button class="btn-edit" onclick="showEditStatus()">
-                    <i class="fas fa-edit"></i> Editar Status
-                </button>
-            `;
-            
-            document.getElementById('modal-title').innerHTML = '<i class="fas fa-eye"></i> Detalhes do Agendamento';
-            document.getElementById('modal-content-area').innerHTML = detailsHTML;
-            document.getElementById('modal-actions').innerHTML = actionsHTML;
-            document.getElementById('appointment-modal').style.display = 'flex';
+            document.getElementById('view-appointment-details').innerHTML = detailsHTML;
+            document.getElementById('view-modal').style.display = 'flex';
         }
 
-        // Função para mostrar edição de status no modal
-        function showEditStatus() {
-            const appointment = appointments[currentAppointmentIndex];
-            
+        // Função para fechar modal de detalhes
+        function closeViewModal() {
+            document.getElementById('view-modal').style.display = 'none';
+        }
+
+        // Função para mostrar formulário de edição de status
+        function showEditStatusForm(index) {
             const password = prompt('Digite a senha para editar o status:');
             if (password !== "CosturADM2023") {
                 alert('Senha incorreta!');
                 return;
             }
             
-            const editHTML = `
-                <div class="appointment-details">
-                    <h3>${appointment.clientName}</h3>
-                    <p><strong>Agendado por:</strong> ${appointment.scheduledBy}</p>
-                    <p><strong>Data de Início:</strong> ${appointment.serviceDate}</p>
-                    <p><strong>Horário:</strong> ${appointment.serviceTime}</p>
-                    <p><strong>Quantidade de Peças:</strong> ${appointment.quantity}</p>
-                    <p><strong>Tipo de Serviço:</strong> ${appointment.serviceType}</p>
-                </div>
-                
-                <div class="edit-section">
-                    <h4><i class="fas fa-edit"></i> Editar Status</h4>
+            currentEditingIndex = index;
+            const appointment = appointments[index];
+            
+            const editFormHTML = `
+                <div class="edit-form" id="edit-form-${index}">
+                    <h4><i class="fas fa-edit"></i> Editar Status do Agendamento</h4>
+                    
                     <div class="form-group">
-                        <label for="edit-status">Status do Agendamento</label>
-                        <select id="edit-status" required>
+                        <label for="edit-status-${index}">Status do Agendamento</label>
+                        <select id="edit-status-${index}" required>
                             <option value="active" ${appointment.status === 'active' ? 'selected' : ''}>Agendado</option>
                             <option value="in-production" ${appointment.status === 'in-production' ? 'selected' : ''}>Em produção</option>
                             <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Realizado</option>
                             <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
                         </select>
                     </div>
+                    
+                    <div class="edit-actions">
+                        <button type="button" class="btn-save" onclick="saveStatusEdit('${appointment.id}', ${index})">
+                            <i class="fas fa-save"></i> Salvar Status
+                        </button>
+                        <button type="button" class="btn-cancel" onclick="cancelEdit(${index})">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
                 </div>
             `;
             
-            const actionsHTML = `
-                <button class="btn-save" onclick="saveStatusEdit()">
-                    <i class="fas fa-save"></i> Salvar Status
-                </button>
-                <button class="btn-cancel" onclick="showAppointmentDetails(${currentAppointmentIndex})">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
-            `;
+            // Remove qualquer formulário de edição existente
+            document.querySelectorAll('.edit-form').forEach(form => form.remove());
             
-            document.getElementById('modal-title').innerHTML = '<i class="fas fa-edit"></i> Editar Status do Agendamento';
-            document.getElementById('modal-content-area').innerHTML = editHTML;
-            document.getElementById('modal-actions').innerHTML = actionsHTML;
+            // Adiciona o novo formulário após o item do agendamento
+            const appointmentItem = document.querySelector(`[data-appointment-id="${appointment.id}"]`);
+            appointmentItem.insertAdjacentHTML('afterend', editFormHTML);
         }
 
         // Função para salvar edição de status
-        async function saveStatusEdit() {
-            const appointment = appointments[currentAppointmentIndex];
+        async function saveStatusEdit(id, index) {
+            const appointment = appointments[index];
             
             // Coleta o novo status
-            const status = document.getElementById('edit-status').value;
+            const status = document.getElementById(`edit-status-${index}`).value;
             
             // Atualiza o agendamento
             const updates = {
@@ -1233,7 +1231,7 @@
             };
             
             try {
-                await updateAppointmentInFirestore(appointment.id, updates);
+                await updateAppointmentInFirestore(id, updates);
                 
                 // Atualiza o agendamento local
                 Object.assign(appointment, updates);
@@ -1243,8 +1241,8 @@
                 updateStats();
                 generateCalendar(currentMonth, currentYear);
                 
-                // Fecha o modal
-                closeModal();
+                // Remove o formulário de edição
+                document.getElementById(`edit-form-${index}`).remove();
                 
                 alert('Status atualizado com sucesso!');
             } catch (error) {
@@ -1252,10 +1250,9 @@
             }
         }
 
-        // Função para fechar modal
-        function closeModal() {
-            document.getElementById('appointment-modal').style.display = 'none';
-            currentAppointmentIndex = null;
+        // Função para cancelar edição
+        function cancelEdit(index) {
+            document.getElementById(`edit-form-${index}`).remove();
         }
 
         // Função para carregar agendamentos na lista principal
@@ -1297,6 +1294,9 @@
                         <div class="appointment-actions">
                             <button class="btn-view" onclick="showAppointmentDetails(${index})">
                                 <i class="fas fa-eye"></i> Ver
+                            </button>
+                            <button class="btn-edit" onclick="showEditStatusForm(${index})">
+                                <i class="fas fa-edit"></i> Editar
                             </button>
                         </div>
                     </div>
