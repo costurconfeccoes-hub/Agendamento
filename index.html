@@ -35,7 +35,6 @@
             --admin-color: #8e44ad;
             --completed-color: #27ae60;
             --in-production-color: #3498db;
-            --view-color: #3498db;
         }
 
         body {
@@ -269,16 +268,62 @@
             box-shadow: none;
         }
         
-        .btn-view {
-            background: var(--view-color);
+        .btn-cancel {
+            background: var(--danger-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+        }
+        
+        .btn-edit {
+            background: var(--warning-color);
             padding: 8px 15px;
             font-size: 0.9rem;
             width: auto;
             margin-right: 10px;
         }
         
-        .btn-edit {
+        .btn-delete {
+            background: var(--danger-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        .btn-correct {
             background: var(--warning-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .btn-save {
+            background: var(--success-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .btn-download {
+            background: var(--secondary);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .btn-complete {
+            background: var(--completed-color);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .btn-update {
+            background: var(--in-production-color);
             padding: 8px 15px;
             font-size: 0.9rem;
             width: auto;
@@ -358,7 +403,7 @@
         }
         
         .appointments-list {
-            max-height: 600px;
+            max-height: 400px;
             overflow-y: auto;
             border: 1px solid #eee;
             border-radius: 8px;
@@ -400,8 +445,6 @@
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
-            margin-top: 5px;
-            display: inline-block;
         }
         
         .status-booked {
@@ -609,55 +652,8 @@
             color: #aaa;
         }
 
-        /* Modal para Ver Detalhes */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        
-        .modal h2 {
-            color: var(--primary);
-            margin-bottom: 20px;
-        }
-        
-        .close-modal {
-            background: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-        }
-
-        .close-modal:hover {
-            background: #c0392b;
-        }
-
-        /* Form de Edição de Status */
-        .edit-form {
+        /* Form de Correção */
+        .correction-form {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
@@ -665,7 +661,7 @@
             border-left: 4px solid var(--warning-color);
         }
 
-        .edit-form h4 {
+        .correction-form h4 {
             color: var(--warning-color);
             margin-bottom: 15px;
             display: flex;
@@ -673,18 +669,17 @@
             gap: 10px;
         }
 
-        .edit-actions {
+        .correction-actions {
             display: flex;
             gap: 10px;
             margin-top: 20px;
         }
 
-        .password-prompt {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 5px;
+        .status-update-form {
             margin-top: 10px;
-            border-left: 4px solid var(--warning-color);
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
         }
 
         /* Remover todas as media queries para mobile */
@@ -896,20 +891,6 @@
         </div>
     </footer>
 
-    <!-- Modal para Ver Detalhes -->
-    <div class="modal" id="view-modal">
-        <div class="modal-content">
-            <h2><i class="fas fa-eye"></i> Detalhes do Agendamento</h2>
-            <button class="close-modal" onclick="closeViewModal()">
-                <i class="fas fa-times"></i> Fechar
-            </button>
-            
-            <div id="view-appointment-details">
-                <!-- Detalhes do agendamento serão preenchidos via JavaScript -->
-            </div>
-        </div>
-    </div>
-
     <script>
         // Configuração do Firebase
         const firebaseConfig = {
@@ -977,6 +958,34 @@
             }
         }
 
+        // Função para excluir agendamento do Firestore
+        async function deleteAppointmentFromFirestore(id) {
+            try {
+                await db.collection('appointments').doc(id).delete();
+            } catch (error) {
+                console.error("Erro ao excluir agendamento:", error);
+                throw error;
+            }
+        }
+
+        // Função para atualizar bookedDates
+        function updateBookedDates() {
+            bookedDates = {};
+            appointments.forEach(appointment => {
+                if (appointment.status === 'active' || appointment.status === 'in-production') {
+                    const start = new Date(appointment.serviceDate);
+                    
+                    for (let i = 0; i < appointment.estimatedDays; i++) {
+                        const currentDate = new Date(start);
+                        currentDate.setDate(start.getDate() + i);
+                        
+                        const dateKey = currentDate.toISOString().split('T')[0];
+                        bookedDates[dateKey] = true;
+                    }
+                }
+            });
+        }
+
         // Função para calcular dias estimados considerando finais de semana
         function calculateEstimatedDays(startDate, quantity) {
             let baseDays = (quantity / 45) + 1;
@@ -1022,24 +1031,6 @@
             }
             
             updateBookedDates();
-        }
-
-        // Função para atualizar bookedDates
-        function updateBookedDates() {
-            bookedDates = {};
-            appointments.forEach(appointment => {
-                if (appointment.status === 'active' || appointment.status === 'in-production') {
-                    const start = new Date(appointment.serviceDate);
-                    
-                    for (let i = 0; i < appointment.estimatedDays; i++) {
-                        const currentDate = new Date(start);
-                        currentDate.setDate(start.getDate() + i);
-                        
-                        const dateKey = currentDate.toISOString().split('T')[0];
-                        bookedDates[dateKey] = true;
-                    }
-                }
-            });
         }
 
         // Função para gerar comprovante do agendamento em PNG
@@ -1093,7 +1084,7 @@
             ctx.fillText(`Tipo de Serviço: ${appointment.serviceType}`, 50, yPosition);
             yPosition += 30;
             
-            ctx.fillText(`Status: ${getStatusText(appointment.status)}`, 50, yPosition);
+            ctx.fillText(`Status: ${appointment.status}`, 50, yPosition);
             yPosition += 30;
             
             ctx.fillText(`Dias Estimados: ${appointment.estimatedDays} dias`, 50, yPosition);
@@ -1121,73 +1112,45 @@
             link.click();
         }
 
-        // Função para obter texto do status
-        function getStatusText(status) {
-            switch(status) {
-                case 'active': return 'Agendado';
-                case 'in-production': return 'Em produção';
-                case 'completed': return 'Realizado';
-                case 'cancelled': return 'Cancelado';
-                default: return status;
-            }
-        }
-
-        // Função para mostrar detalhes do agendamento
-        function showAppointmentDetails(index) {
-            const appointment = appointments[index];
-            
-            let statusClass = 'status-booked';
-            let statusText = 'Agendado';
-            
-            if (appointment.status === 'cancelled') {
-                statusClass = 'status-cancelled';
-                statusText = 'Cancelado';
-            } else if (appointment.status === 'completed') {
-                statusClass = 'status-completed';
-                statusText = 'Realizado';
-            } else if (appointment.status === 'in-production') {
-                statusClass = 'status-in-production';
-                statusText = 'Em produção';
-            }
-            
-            const detailsHTML = `
-                <div class="appointment-details">
-                    <h3>${appointment.clientName}</h3>
-                    <p><strong>Agendado por:</strong> ${appointment.scheduledBy}</p>
-                    <p><strong>Data de Início:</strong> ${appointment.serviceDate}</p>
-                    <p><strong>Horário:</strong> ${appointment.serviceTime}</p>
-                    <p><strong>Quantidade de Peças:</strong> ${appointment.quantity}</p>
-                    <p><strong>Tipo de Serviço:</strong> ${appointment.serviceType}</p>
-                    <p><strong>Dias Estimados:</strong> ${appointment.estimatedDays} dias</p>
-                    <p><strong>Previsão de Término:</strong> ${calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays).toLocaleDateString('pt-BR')}</p>
-                    <p><strong>Nº do Documento:</strong> ${appointment.documentNumber || 'DOC-' + appointment.id.toString().slice(-6)}</p>
-                    <div class="appointment-status ${statusClass}">${statusText}</div>
-                </div>
-            `;
-            
-            document.getElementById('view-appointment-details').innerHTML = detailsHTML;
-            document.getElementById('view-modal').style.display = 'flex';
-        }
-
-        // Função para fechar modal de detalhes
-        function closeViewModal() {
-            document.getElementById('view-modal').style.display = 'none';
-        }
-
-        // Função para mostrar formulário de edição de status
-        function showEditStatusForm(index) {
-            const password = prompt('Digite a senha para editar o status:');
-            if (password !== "CosturADM2023") {
-                alert('Senha incorreta!');
-                return;
-            }
-            
+        // Função para mostrar formulário de edição
+        function showEditForm(index) {
             currentEditingIndex = index;
             const appointment = appointments[index];
             
             const editFormHTML = `
-                <div class="edit-form" id="edit-form-${index}">
-                    <h4><i class="fas fa-edit"></i> Editar Status do Agendamento</h4>
+                <div class="correction-form" id="edit-form-${index}">
+                    <h4><i class="fas fa-edit"></i> Editar Agendamento</h4>
+                    
+                    <div class="form-group">
+                        <label for="edit-client-name-${index}">Nome do Cliente</label>
+                        <input type="text" id="edit-client-name-${index}" value="${appointment.clientName}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-scheduled-by-${index}">Agendado por</label>
+                        <select id="edit-scheduled-by-${index}" required>
+                            <option value="Wallison Vinicius" ${appointment.scheduledBy === 'Wallison Vinicius' ? 'selected' : ''}>Wallison Vinicius</option>
+                            <option value="Eduarda Emmanoelly" ${appointment.scheduledBy === 'Eduarda Emmanoelly' ? 'selected' : ''}>Eduarda Emmanoelly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-service-date-${index}">Data de Início</label>
+                        <input type="date" id="edit-service-date-${index}" value="${appointment.serviceDate}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-quantity-${index}">Quantidade de Peças</label>
+                        <input type="number" id="edit-quantity-${index}" value="${appointment.quantity}" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-service-type-${index}">Tipo de Serviço</label>
+                        <select id="edit-service-type-${index}" required>
+                            <option value="confecção completa" ${appointment.serviceType === 'confecção completa' ? 'selected' : ''}>Confecção completa</option>
+                            <option value="Confecção parcial" ${appointment.serviceType === 'Confecção parcial' ? 'selected' : ''}>Confecção parcial</option>
+                        </select>
+                    </div>
                     
                     <div class="form-group">
                         <label for="edit-status-${index}">Status do Agendamento</label>
@@ -1199,9 +1162,16 @@
                         </select>
                     </div>
                     
-                    <div class="edit-actions">
-                        <button type="button" class="btn-save" onclick="saveStatusEdit('${appointment.id}', ${index})">
-                            <i class="fas fa-save"></i> Salvar Status
+                    <div class="form-group">
+                        <label>Horário de Início</label>
+                        <div class="time-slots" id="edit-time-slots-${index}">
+                            ${generateTimeSlotsForEdit(appointment.serviceTime)}
+                        </div>
+                    </div>
+                    
+                    <div class="correction-actions">
+                        <button type="button" class="btn-save" onclick="saveEdit('${appointment.id}', ${index})">
+                            <i class="fas fa-save"></i> Salvar
                         </button>
                         <button type="button" class="btn-cancel" onclick="cancelEdit(${index})">
                             <i class="fas fa-times"></i> Cancelar
@@ -1211,23 +1181,66 @@
             `;
             
             // Remove qualquer formulário de edição existente
-            document.querySelectorAll('.edit-form').forEach(form => form.remove());
+            document.querySelectorAll('.correction-form').forEach(form => form.remove());
             
             // Adiciona o novo formulário após o item do agendamento
             const appointmentItem = document.querySelector(`[data-appointment-id="${appointment.id}"]`);
             appointmentItem.insertAdjacentHTML('afterend', editFormHTML);
+            
+            // Adiciona eventos aos time slots
+            document.querySelectorAll(`#edit-time-slots-${index} .time-slot`).forEach(slot => {
+                slot.addEventListener('click', function() {
+                    document.querySelectorAll(`#edit-time-slots-${index} .time-slot.selected`).forEach(s => {
+                        s.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                });
+            });
         }
 
-        // Função para salvar edição de status
-        async function saveStatusEdit(id, index) {
+        // Função para gerar time slots para edição
+        function generateTimeSlotsForEdit(selectedTime) {
+            const timeSlots = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+            let html = '';
+            
+            timeSlots.forEach(time => {
+                const isSelected = time === selectedTime ? 'selected' : '';
+                html += `<div class="time-slot available ${isSelected}" data-time="${time}">${time}</div>`;
+            });
+            
+            return html;
+        }
+
+        // Função para salvar edição
+        async function saveEdit(id, index) {
             const appointment = appointments[index];
             
-            // Coleta o novo status
+            // Coleta os novos valores
+            const clientName = document.getElementById(`edit-client-name-${index}`).value;
+            const scheduledBy = document.getElementById(`edit-scheduled-by-${index}`).value;
+            const serviceDate = document.getElementById(`edit-service-date-${index}`).value;
+            const quantity = document.getElementById(`edit-quantity-${index}`).value;
+            const serviceType = document.getElementById(`edit-service-type-${index}`).value;
             const status = document.getElementById(`edit-status-${index}`).value;
+            const selectedTimeElement = document.querySelector(`#edit-time-slots-${index} .time-slot.selected`);
+            
+            if (!selectedTimeElement) {
+                alert('Por favor, selecione um horário.');
+                return;
+            }
+            
+            const serviceTime = selectedTimeElement.getAttribute('data-time');
             
             // Atualiza o agendamento
             const updates = {
-                status: status
+                clientName: clientName,
+                scheduledBy: scheduledBy,
+                serviceDate: serviceDate,
+                quantity: parseInt(quantity),
+                serviceType: serviceType,
+                serviceTime: serviceTime,
+                status: status,
+                estimatedDays: calculateEstimatedDays(serviceDate, parseInt(quantity))
             };
             
             try {
@@ -1244,9 +1257,9 @@
                 // Remove o formulário de edição
                 document.getElementById(`edit-form-${index}`).remove();
                 
-                alert('Status atualizado com sucesso!');
+                alert('Agendamento atualizado com sucesso!');
             } catch (error) {
-                alert('Erro ao salvar status. Tente novamente.');
+                alert('Erro ao salvar edição. Tente novamente.');
             }
         }
 
@@ -1292,11 +1305,11 @@
                             <div class="appointment-status ${statusClass}">${statusText}</div>
                         </div>
                         <div class="appointment-actions">
-                            <button class="btn-view" onclick="showAppointmentDetails(${index})">
-                                <i class="fas fa-eye"></i> Ver
-                            </button>
-                            <button class="btn-edit" onclick="showEditStatusForm(${index})">
+                            <button class="btn-update" onclick="showEditForm(${index})">
                                 <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button class="btn-delete" onclick="deleteAppointment('${appointment.id}', ${index})">
+                                <i class="fas fa-trash"></i> Excluir
                             </button>
                         </div>
                     </div>
@@ -1304,6 +1317,27 @@
             });
             
             appointmentsContainer.innerHTML = appointmentsHTML;
+        }
+
+        // Função para excluir agendamento
+        async function deleteAppointment(id, index) {
+            if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+                try {
+                    await deleteAppointmentFromFirestore(id);
+                    
+                    // Remove o agendamento local
+                    appointments.splice(index, 1);
+                    
+                    // Atualiza a interface
+                    loadAppointmentsList();
+                    generateCalendar(currentMonth, currentYear);
+                    updateStats();
+                    
+                    alert('Agendamento excluído com sucesso!');
+                } catch (error) {
+                    alert('Erro ao excluir agendamento. Tente novamente.');
+                }
+            }
         }
         
         // Função para gerar o calendário
