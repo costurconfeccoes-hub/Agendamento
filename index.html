@@ -6,8 +6,14 @@
     <title>Costur Confecções - Sistema de Agendamento</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
     <style>
-        /* Todos os estilos CSS anteriores permanecem aqui */
+        /* Estilos otimizados para tela de computador */
         * {
             margin: 0;
             padding: 0;
@@ -28,12 +34,16 @@
             --danger-color: #e74c3c;
             --admin-color: #8e44ad;
             --completed-color: #27ae60;
+            --in-production-color: #3498db;
+            --view-color: #3498db;
         }
 
         body {
             background-color: #f9f9f9;
             color: var(--text);
             line-height: 1.6;
+            min-width: 1200px;
+            overflow-x: auto;
         }
 
         .container {
@@ -55,8 +65,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
         }
 
         .logo-container {
@@ -261,54 +269,16 @@
             box-shadow: none;
         }
         
-        .btn-cancel {
-            background: var(--danger-color);
+        .btn-view {
+            background: var(--view-color);
             padding: 8px 15px;
             font-size: 0.9rem;
             width: auto;
+            margin-right: 10px;
         }
         
         .btn-edit {
             background: var(--warning-color);
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            width: auto;
-            margin-right: 10px;
-        }
-        
-        .btn-delete {
-            background: var(--danger-color);
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            width: auto;
-        }
-
-        .btn-correct {
-            background: var(--warning-color);
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            width: auto;
-            margin-right: 10px;
-        }
-
-        .btn-save {
-            background: var(--success-color);
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            width: auto;
-            margin-right: 10px;
-        }
-
-        .btn-download {
-            background: var(--secondary);
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            width: auto;
-            margin-right: 10px;
-        }
-
-        .btn-complete {
-            background: var(--completed-color);
             padding: 8px 15px;
             font-size: 0.9rem;
             width: auto;
@@ -377,7 +347,7 @@
         }
         
         .calendar-day.booked {
-            background-color: var(--danger-color);
+            background-color: var(--secondary);
             color: white;
         }
         
@@ -387,18 +357,8 @@
             background-color: #fff9e6;
         }
         
-        .calendar-day.sunday {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        .calendar-day.saturday {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        
         .appointments-list {
-            max-height: 400px;
+            max-height: 600px;
             overflow-y: auto;
             border: 1px solid #eee;
             border-radius: 8px;
@@ -440,10 +400,17 @@
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
+            margin-top: 5px;
+            display: inline-block;
         }
         
         .status-booked {
             background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .status-in-production {
+            background-color: var(--in-production-color);
             color: white;
         }
         
@@ -515,68 +482,6 @@
             color: #666;
         }
         
-        /* Modal Admin */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        
-        .modal h2 {
-            color: var(--admin-color);
-            margin-bottom: 20px;
-        }
-        
-        .admin-appointments {
-            margin-top: 20px;
-        }
-        
-        .admin-appointment-item {
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background: #f9f9f9;
-        }
-        
-        .filter-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .filter-btn {
-            background: #ecf0f1;
-            color: var(--dark);
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
-        .filter-btn.active {
-            background: var(--primary);
-            color: white;
-        }
-        
         .time-slots {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -643,74 +548,6 @@
             border-left: 4px solid var(--warning-color);
         }
         
-        .admin-access {
-            text-align: center;
-            margin-top: 20px;
-        }
-        
-        .admin-btn {
-            background: var(--admin-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-
-        .admin-btn:hover {
-            background: #7d3c98;
-            transform: translateY(-2px);
-        }
-
-        .close-admin-btn {
-            background: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-        }
-
-        .close-admin-btn:hover {
-            background: #c0392b;
-        }
-
-        .admin-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        /* Form de Correção */
-        .correction-form {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 15px;
-            border-left: 4px solid var(--warning-color);
-        }
-
-        .correction-form h4 {
-            color: var(--warning-color);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .correction-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
         /* Footer */
         footer {
             background-color: var(--primary);
@@ -772,580 +609,76 @@
             color: #aaa;
         }
 
-        /* Tabs para Agendamentos */
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-        }
-
-        .tab {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-
-        .tab.active {
-            color: var(--primary);
-            border-bottom: 3px solid var(--secondary);
-        }
-
-        .tab-content {
+        /* Modal Único */
+        .modal {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .modal h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .close-modal {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            position: absolute;
+            top: 20px;
+            right: 20px;
         }
 
-        .tab-content.active {
-            display: block;
+        .close-modal:hover {
+            background: #c0392b;
         }
 
-        @media (max-width: 768px) {
-            .calendar-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats {
-                grid-template-columns: 1fr;
-            }
-            
-            .appointment-actions {
-                flex-direction: column;
-            }
-            
-            .time-slots {
-                grid-template-columns: 1fr;
-            }
-            
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
-            }
-
-            .header-contact {
-                align-items: center;
-            }
-
-            .hero h2 {
-                font-size: 2rem;
-            }
-
-            .hero p {
-                font-size: 1rem;
-            }
-
-            .admin-controls {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .close-admin-btn {
-                position: static;
-                margin-top: 10px;
-            }
-
-            .tabs {
-                flex-direction: column;
-            }
-
-            .tab {
-                text-align: center;
-            }
-
-            .correction-actions {
-                flex-direction: column;
-            }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
         }
 
-        @media (max-width: 480px) {
-            .logo-container {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .logo-text h1 {
-                font-size: 1.3rem;
-            }
-
-            .logo-text p {
-                font-size: 0.8rem;
-            }
-
-            .contact-item {
-                font-size: 0.8rem;
-            }
-
-            .section-title h2 {
-                font-size: 1.8rem;
-            }
+        .password-prompt {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border-left: 4px solid var(--warning-color);
         }
+
+        .edit-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        /* Remover todas as media queries para mobile */
     </style>
-    
-    <!-- Adicione estas linhas antes do fechamento da tag </head> -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-
-<script>
-  // Configuração do Firebase com suas credenciais
-  const firebaseConfig = {
-    apiKey: "AIzaSyAc1iUDZEjyDOtrY9UT_idP5_TGODIsc9E",
-    authDomain: "costur-agendamentos.firebaseapp.com",
-    projectId: "costur-agendamentos",
-    storageBucket: "costur-agendamentos.firebasestorage.app",
-    messagingSenderId: "948222283708",
-    appId: "1:948222283708:web:a82876883f247e51ede5b9"
-  };
-
-  // Inicialização do Firebase
-  let firebaseInitialized = false;
-  let db = null;
-
-  try {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    firebaseInitialized = true;
-    console.log("Firebase inicializado com sucesso");
-  } catch (error) {
-    console.log("Firebase não pôde ser inicializado: ", error);
-  }
-
-  // Funções para sincronização com Firebase
-  async function syncToFirebase() {
-    if (!firebaseInitialized || !db) {
-      console.log("Firebase não disponível para sincronização");
-      return false;
-    }
-    
-    try {
-      console.log("Iniciando sincronização com Firebase...");
-      
-      // Sincronizar agendamentos
-      const appointmentsRef = db.collection('appointments');
-      const snapshot = await appointmentsRef.get();
-      
-      const localAppointments = JSON.parse(localStorage.getItem('appointments')) || [];
-      
-      // Se não existem dados no Firebase, enviar todos os dados locais
-      if (snapshot.empty) {
-        console.log("Firebase vazio, enviando dados locais...");
-        for (const appointment of localAppointments) {
-          await appointmentsRef.doc(appointment.id.toString()).set({
-            ...appointment,
-            updatedAt: new Date().toISOString()
-          });
-        }
-        console.log("Dados locais enviados para Firebase");
-      } else {
-        // Se existem dados no Firebase, mesclar com dados locais
-        console.log("Mesclando dados Firebase com locais...");
-        const firebaseAppointments = [];
-        snapshot.forEach(doc => {
-          firebaseAppointments.push(doc.data());
-        });
-        
-        // Combinar dados (priorizando Firebase em caso de conflito)
-        const mergedAppointments = [...localAppointments];
-        
-        for (const fbAppointment of firebaseAppointments) {
-          const localIndex = mergedAppointments.findIndex(a => a.id === fbAppointment.id);
-          if (localIndex === -1) {
-            // Agendamento existe apenas no Firebase - adicionar ao local
-            mergedAppointments.push(fbAppointment);
-          } else {
-            // Se o registro do Firebase é mais recente, usar ele
-            const fbUpdated = new Date(fbAppointment.updatedAt || 0);
-            const localUpdated = new Date(mergedAppointments[localIndex].updatedAt || 0);
-            if (fbUpdated > localUpdated) {
-              mergedAppointments[localIndex] = fbAppointment;
-            }
-          }
-        }
-        
-        // Atualizar localStorage com dados mesclados
-        localStorage.setItem('appointments', JSON.stringify(mergedAppointments));
-        
-        // Atualizar Firebase com dados mesclados
-        for (const appointment of mergedAppointments) {
-          await appointmentsRef.doc(appointment.id.toString()).set({
-            ...appointment,
-            updatedAt: new Date().toISOString()
-          });
-        }
-        
-        console.log("Dados mesclados e sincronizados");
-      }
-      
-      // Sincronizar bookedDates
-      const bookedDatesRef = db.collection('config').doc('bookedDates');
-      const bookedDatesDoc = await bookedDatesRef.get();
-      const localBookedDates = JSON.parse(localStorage.getItem('bookedDates')) || {};
-      
-      if (!bookedDatesDoc.exists) {
-        await bookedDatesRef.set({
-          dates: localBookedDates,
-          updatedAt: new Date().toISOString()
-        });
-        console.log("BookedDates enviados para Firebase");
-      } else {
-        const firebaseBookedDates = bookedDatesDoc.data().dates || {};
-        
-        // Mesclar bookedDates (Firebase tem prioridade)
-        const mergedBookedDates = { ...localBookedDates, ...firebaseBookedDates };
-        
-        // Atualizar localStorage
-        localStorage.setItem('bookedDates', JSON.stringify(mergedBookedDates));
-        
-        // Atualizar Firebase
-        await bookedDatesRef.set({
-          dates: mergedBookedDates,
-          updatedAt: new Date().toISOString()
-        });
-        
-        console.log("BookedDates mesclados e sincronizados");
-      }
-      
-      console.log("Sincronização com Firebase concluída com sucesso");
-      return true;
-    } catch (error) {
-      console.error("Erro na sincronização com Firebase: ", error);
-      return false;
-    }
-  }
-
-  // Função para salvar um agendamento no Firebase
-  async function saveAppointmentToFirebase(appointment) {
-    if (!firebaseInitialized || !db) {
-      console.log("Firebase não disponível, salvando apenas localmente");
-      return false;
-    }
-    
-    try {
-      await db.collection('appointments').doc(appointment.id.toString()).set({
-        ...appointment,
-        updatedAt: new Date().toISOString()
-      });
-      console.log("Agendamento salvo no Firebase: ", appointment.id);
-      return true;
-    } catch (error) {
-      console.error("Erro ao salvar agendamento no Firebase: ", error);
-      return false;
-    }
-  }
-
-  // Função para salvar bookedDates no Firebase
-  async function saveBookedDatesToFirebase() {
-    if (!firebaseInitialized || !db) {
-      console.log("Firebase não disponível, salvando apenas localmente");
-      return false;
-    }
-    
-    try {
-      const bookedDates = JSON.parse(localStorage.getItem('bookedDates')) || {};
-      await db.collection('config').doc('bookedDates').set({
-        dates: bookedDates,
-        updatedAt: new Date().toISOString()
-      });
-      console.log("BookedDates salvos no Firebase");
-      return true;
-    } catch (error) {
-      console.error("Erro ao salvar bookedDates no Firebase: ", error);
-      return false;
-    }
-  }
-
-  // Função para deletar um agendamento do Firebase
-  async function deleteAppointmentFromFirebase(appointmentId) {
-    if (!firebaseInitialized || !db) {
-      console.log("Firebase não disponível, deletando apenas localmente");
-      return false;
-    }
-    
-    try {
-      await db.collection('appointments').doc(appointmentId.toString()).delete();
-      console.log("Agendamento deletado do Firebase: ", appointmentId);
-      return true;
-    } catch (error) {
-      console.error("Erro ao deletar agendamento do Firebase: ", error);
-      return false;
-    }
-  }
-
-  // Sobrescrever funções existentes para incluir sincronização com Firebase
-
-  // 1. Sobrescrever markDaysAsBooked
-  const originalMarkDaysAsBooked = window.markDaysAsBooked;
-  window.markDaysAsBooked = function(startDate, estimatedDays) {
-    // Executar função original
-    const result = originalMarkDaysAsBooked(startDate, estimatedDays);
-    
-    // Sincronizar com Firebase
-    saveBookedDatesToFirebase();
-    
-    return result;
-  };
-
-  // 2. Sobrescrever completeAppointment
-  const originalCompleteAppointment = window.completeAppointment;
-  window.completeAppointment = function(index) {
-    if (confirm('Tem certeza que deseja marcar este agendamento como realizado?')) {
-      appointments[index].status = 'completed';
-      localStorage.setItem('appointments', JSON.stringify(appointments));
-      
-      // Sincronizar com Firebase
-      saveAppointmentToFirebase(appointments[index]);
-      
-      loadAdminAppointments();
-      loadAppointmentsList();
-      updateStats();
-      alert('Agendamento marcado como realizado!');
-    }
-  };
-
-  // 3. Sobrescrever cancelAppointment
-  const originalCancelAppointment = window.cancelAppointment;
-  window.cancelAppointment = function(index) {
-    if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
-      appointments[index].status = 'cancelled';
-      localStorage.setItem('appointments', JSON.stringify(appointments));
-      
-      // Sincronizar com Firebase
-      saveAppointmentToFirebase(appointments[index]);
-      
-      loadAdminAppointments();
-      loadAppointmentsList();
-      alert('Agendamento cancelado com sucesso!');
-    }
-  };
-
-  // 4. Sobrescrever deleteAppointment
-  const originalDeleteAppointment = window.deleteAppointment;
-  window.deleteAppointment = function(index) {
-    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-      const deletedAppointment = appointments[index];
-      
-      // Remove as datas dos dias ocupados
-      const startDate = new Date(deletedAppointment.serviceDate);
-      for (let i = 0; i < deletedAppointment.estimatedDays; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + i);
-        const dateKey = currentDate.toISOString().split('T')[0];
-        delete bookedDates[dateKey];
-      }
-      
-      localStorage.setItem('bookedDates', JSON.stringify(bookedDates));
-      
-      // Deletar do Firebase
-      deleteAppointmentFromFirebase(deletedAppointment.id);
-      
-      appointments.splice(index, 1);
-      localStorage.setItem('appointments', JSON.stringify(appointments));
-      
-      // Atualizar bookedDates no Firebase
-      saveBookedDatesToFirebase();
-      
-      // Atualiza a interface
-      loadAdminAppointments();
-      loadAppointmentsList();
-      generateCalendar(currentMonth, currentYear);
-      updateStats();
-      alert('Agendamento excluído com sucesso!');
-    }
-  };
-
-  // 5. Sobrescrever saveCorrection
-  const originalSaveCorrection = window.saveCorrection;
-  window.saveCorrection = function(index) {
-    const appointment = appointments[index];
-    
-    // Coleta os novos valores
-    const scheduledBy = document.getElementById(`correction-scheduled-by-${index}`).value;
-    const serviceDate = document.getElementById(`correction-service-date-${index}`).value;
-    const quantity = document.getElementById(`correction-quantity-${index}`).value;
-    const serviceType = document.getElementById(`correction-service-type-${index}`).value;
-    const selectedTimeElement = document.querySelector(`#correction-time-slots-${index} .time-slot.selected`);
-    
-    if (!selectedTimeElement) {
-      alert('Por favor, selecione um horário.');
-      return;
-    }
-    
-    const serviceTime = selectedTimeElement.getAttribute('data-time');
-    
-    // Atualiza o agendamento
-    appointment.scheduledBy = scheduledBy;
-    appointment.serviceDate = serviceDate;
-    appointment.quantity = quantity;
-    appointment.serviceType = serviceType;
-    appointment.serviceTime = serviceTime;
-    appointment.estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
-    
-    // Atualiza o localStorage
-    localStorage.setItem('appointments', JSON.stringify(appointments));
-    
-    // Sincroniza com Firebase
-    saveAppointmentToFirebase(appointment);
-    
-    // Atualiza a interface
-    loadAdminAppointments();
-    loadAppointmentsList();
-    updateStats();
-    
-    // Remove o formulário de correção
-    document.getElementById(`correction-form-${index}`).remove();
-    
-    alert('Correção salva com sucesso!');
-  };
-
-  // 6. Modificar o evento de submit do formulário para salvar no Firebase
-  document.addEventListener('DOMContentLoaded', function() {
-    // Encontrar o formulário e adicionar evento de submit
-    const appointmentForm = document.getElementById('appointment-form');
-    if (appointmentForm) {
-      const originalSubmitHandler = appointmentForm.onsubmit;
-      
-      appointmentForm.onsubmit = function(e) {
-        e.preventDefault();
-        
-        const clientName = document.getElementById('client-name').value;
-        const scheduledBy = document.getElementById('scheduled-by').value;
-        const serviceDate = document.getElementById('service-date').value;
-        const quantity = document.getElementById('quantity').value;
-        const serviceType = document.getElementById('service-type').value;
-        const selectedTime = document.querySelector('.time-slot.selected')?.getAttribute('data-time');
-        
-        if (!selectedTime) {
-          alert('Por favor, selecione um horário.');
-          return;
-        }
-        
-        // Calcula os dias estimados
-        const estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
-        const documentNumber = `DOC-${Date.now().toString().slice(-6)}`;
-        
-        // Cria o agendamento
-        const newAppointment = {
-          id: Date.now(),
-          clientName,
-          scheduledBy,
-          serviceDate,
-          serviceTime: selectedTime,
-          quantity,
-          serviceType,
-          estimatedDays,
-          documentNumber,
-          status: 'active',
-          createdAt: new Date().toISOString()
-        };
-        
-        // Adiciona ao array de agendamentos
-        appointments.push(newAppointment);
-        localStorage.setItem('appointments', JSON.stringify(appointments));
-        
-        // Marca os dias como ocupados no calendário
-        markDaysAsBooked(serviceDate, estimatedDays);
-        
-        // Salva no Firebase
-        saveAppointmentToFirebase(newAppointment);
-        
-        // Gera o PDF automaticamente
-        generateAppointmentPDF(newAppointment);
-        
-        // Atualiza a interface
-        generateCalendar(currentMonth, currentYear);
-        loadAppointmentsList();
-        updateStats();
-        
-        alert('Agendamento realizado com sucesso! O PDF foi baixado automaticamente.');
-        
-        // Limpa o formulário
-        document.getElementById('appointment-form').reset();
-        document.getElementById('time-slots').innerHTML = '';
-        document.getElementById('entry-datetime').textContent = '-';
-        document.getElementById('completion-datetime').textContent = '-';
-        document.getElementById('document-number').textContent = 'Nº do Documento: Aguardando dados...';
-        document.getElementById('estimated-days').textContent = '0';
-      };
-    }
-
-    // Inicializar sincronização quando a página carregar
-    setTimeout(() => {
-      if (firebaseInitialized) {
-        syncToFirebase().then(success => {
-          if (success) {
-            // Recarregar dados após sincronização
-            appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-            bookedDates = JSON.parse(localStorage.getItem('bookedDates')) || {};
-            
-            // Atualizar interface
-            loadAppointmentsList();
-            generateCalendar(currentMonth, currentYear);
-            updateStats();
-            
-            console.log("Sistema sincronizado com Firebase");
-          }
-        });
-      }
-    }, 3000);
-  });
-
-  // Adicionar botão de sincronização manual na área administrativa
-  function addSyncButtonToAdmin() {
-    const adminControls = document.querySelector('.admin-controls');
-    if (adminControls && !document.getElementById('sync-button')) {
-      const syncButton = document.createElement('button');
-      syncButton.id = 'sync-button';
-      syncButton.className = 'admin-btn';
-      syncButton.innerHTML = '<i class="fas fa-sync-alt"></i> Sincronizar com Nuvem';
-      syncButton.onclick = manualSync;
-      syncButton.style.marginLeft = '10px';
-      
-      adminControls.appendChild(syncButton);
-    }
-  }
-
-  // Função de sincronização manual
-  async function manualSync() {
-    const button = document.getElementById('sync-button');
-    const originalText = button.innerHTML;
-    
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
-    button.disabled = true;
-    
-    const success = await syncToFirebase();
-    
-    if (success) {
-      // Recarregar dados após sincronização
-      appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-      bookedDates = JSON.parse(localStorage.getItem('bookedDates')) || {};
-      
-      // Atualizar interface
-      loadAppointmentsList();
-      loadAdminAppointments();
-      generateCalendar(currentMonth, currentYear);
-      updateStats();
-      
-      alert('Sincronização com a nuvem realizada com sucesso!');
-    } else {
-      alert('Erro na sincronização. Verifique sua conexão com a internet.');
-    }
-    
-    button.innerHTML = originalText;
-    button.disabled = false;
-  }
-
-  // Adicionar botão de sincronização quando abrir a área administrativa
-  const originalOpenAdmin = window.openAdmin;
-  window.openAdmin = function() {
-    originalOpenAdmin();
-    setTimeout(addSyncButtonToAdmin, 100);
-  };
-</script>
-    
 </head>
 <body>
     <!-- Header -->
@@ -1426,6 +759,16 @@
                     </div>
                     
                     <div class="form-group">
+                        <label for="appointment-status">Status do Agendamento</label>
+                        <select id="appointment-status" required>
+                            <option value="Agendado">Agendado</option>
+                            <option value="Em produção">Em produção</option>
+                            <option value="Realizado">Realizado</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
                         <label>Horário de Início</label>
                         <div class="time-slots" id="time-slots">
                             <!-- Horários serão gerados via JavaScript -->
@@ -1481,24 +824,16 @@
                         <h3>Legenda</h3>
                         <div class="legend">
                             <div class="legend-item">
-                                <div class="legend-color available"></div>
+                                <div class="legend-color" style="background-color: var(--success-color);"></div>
                                 <span>Disponível para agendamento</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color booked"></div>
+                                <div class="legend-color" style="background-color: var(--secondary);"></div>
                                 <span>Período ocupado</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color today"></div>
+                                <div class="legend-color" style="border: 2px solid var(--secondary); background-color: #fff9e6;"></div>
                                 <span>Dia atual</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color sunday"></div>
-                                <span>Domingo (horário normal)</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color saturday"></div>
-                                <span>Sábado (meio período)</span>
                             </div>
                         </div>
                         
@@ -1511,31 +846,10 @@
             </div>
             
             <div class="card">
-                <h2><i class="fas fa-list"></i> Agendamentos</h2>
+                <h2><i class="fas fa-list"></i> Histórico de Agendamentos</h2>
                 
-                <!-- Tabs para Agendamentos Ativos, Realizados e Cancelados -->
-                <div class="tabs">
-                    <button class="tab active" data-tab="active">Agendamentos Ativos</button>
-                    <button class="tab" data-tab="completed">Agendamentos Realizados</button>
-                    <button class="tab" data-tab="cancelled">Agendamentos Cancelados</button>
-                </div>
-                
-                <div class="tab-content active" id="active-appointments">
-                    <div class="appointments-list" id="appointments-list">
-                        <!-- Agendamentos ativos serão gerados via JavaScript -->
-                    </div>
-                </div>
-                
-                <div class="tab-content" id="completed-appointments">
-                    <div class="appointments-list" id="completed-list">
-                        <!-- Agendamentos realizados serão gerados via JavaScript -->
-                    </div>
-                </div>
-                
-                <div class="tab-content" id="cancelled-appointments">
-                    <div class="appointments-list" id="cancelled-list">
-                        <!-- Agendamentos cancelados serão gerados via JavaScript -->
-                    </div>
+                <div class="appointments-list" id="appointments-list">
+                    <!-- Todos os agendamentos serão listados aqui -->
                 </div>
             </div>
         </div>
@@ -1566,63 +880,96 @@
                 </div>
             </div>
             
-            <!-- Botão da Área Administrativa no rodapé -->
-            <div class="admin-access">
-                <button class="admin-btn" onclick="openAdmin()">
-                    <i class="fas fa-tools"></i> Área Administrativa
-                </button>
-            </div>
-            
             <div class="copyright">
                 &copy; 2023 Costur Confecções. Todos os direitos reservados.
             </div>
         </div>
     </footer>
 
-    <!-- Modal Administrativo -->
-    <div class="modal" id="admin-modal">
+    <!-- Modal Único -->
+    <div class="modal" id="appointment-modal">
         <div class="modal-content">
-            <div class="admin-controls">
-                <h2><i class="fas fa-tools"></i> Área Administrativa</h2>
-                <button class="close-admin-btn" onclick="closeAdmin()">
-                    <i class="fas fa-times"></i> Sair
-                </button>
+            <h2 id="modal-title"><i class="fas fa-eye"></i> Detalhes do Agendamento</h2>
+            <button class="close-modal" onclick="closeModal()">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+            
+            <div id="modal-content-area">
+                <!-- Conteúdo do modal será preenchido via JavaScript -->
             </div>
             
-            <div id="admin-login">
-                <div class="form-group">
-                    <label for="admin-password">Senha de Acesso:</label>
-                    <input type="password" id="admin-password" placeholder="Digite a senha administrativa">
-                    <button onclick="verifyAdminPassword()">Acessar</button>
-                </div>
-            </div>
-            
-            <div id="admin-content" class="hidden">
-                <div class="filter-buttons">
-                    <button class="filter-btn active" data-filter="all">Todos</button>
-                    <button class="filter-btn" data-filter="active">Ativos</button>
-                    <button class="filter-btn" data-filter="completed">Realizados</button>
-                    <button class="filter-btn" data-filter="cancelled">Cancelados</button>
-                </div>
-                
-                <div class="admin-appointments" id="admin-appointments">
-                    <!-- Agendamentos administrativos serão gerados via JavaScript -->
-                </div>
+            <div class="modal-actions" id="modal-actions">
+                <!-- Ações do modal serão preenchidas via JavaScript -->
             </div>
         </div>
     </div>
 
     <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAc1iUDZEjyDOtrY9UT_idP5_TGODIsc9E",
+            authDomain: "costur-agendamentos.firebaseapp.com",
+            projectId: "costur-agendamentos",
+            storageBucket: "costur-agendamentos.firebasestorage.app",
+            messagingSenderId: "948222283708",
+            appId: "1:948222283708:web:a82876883f247e51ede5b9"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         // Armazenamento de agendamentos
-        let appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-        let bookedDates = JSON.parse(localStorage.getItem('bookedDates')) || {};
-        let currentEditingIndex = null;
-        let currentFilter = 'all';
+        let appointments = [];
+        let bookedDates = {};
+        let currentAppointmentIndex = null;
 
         // Variáveis globais para o calendário
         let currentDate = new Date();
         let currentMonth = currentDate.getMonth();
         let currentYear = currentDate.getFullYear();
+
+        // Função para carregar agendamentos do Firestore
+        async function loadAppointmentsFromFirestore() {
+            try {
+                const snapshot = await db.collection('appointments').orderBy('createdAt', 'desc').get();
+                appointments = [];
+                snapshot.forEach(doc => {
+                    appointments.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Atualizar a interface
+                loadAppointmentsList();
+                updateStats();
+                generateCalendar(currentMonth, currentYear);
+                
+                // Atualizar bookedDates
+                updateBookedDates();
+            } catch (error) {
+                console.error("Erro ao carregar agendamentos:", error);
+            }
+        }
+
+        // Função para salvar agendamento no Firestore
+        async function saveAppointmentToFirestore(appointment) {
+            try {
+                const docRef = await db.collection('appointments').add(appointment);
+                return docRef.id;
+            } catch (error) {
+                console.error("Erro ao salvar agendamento:", error);
+                throw error;
+            }
+        }
+
+        // Função para atualizar agendamento no Firestore
+        async function updateAppointmentInFirestore(id, updates) {
+            try {
+                await db.collection('appointments').doc(id).update(updates);
+            } catch (error) {
+                console.error("Erro ao atualizar agendamento:", error);
+                throw error;
+            }
+        }
 
         // Função para calcular dias estimados considerando finais de semana
         function calculateEstimatedDays(startDate, quantity) {
@@ -1668,244 +1015,261 @@
                 bookedDates[dateKey] = true;
             }
             
-            localStorage.setItem('bookedDates', JSON.stringify(bookedDates));
+            updateBookedDates();
         }
 
-        // Função para gerar PDF do agendamento
-        function generateAppointmentPDF(appointment) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        // Função para atualizar bookedDates
+        function updateBookedDates() {
+            bookedDates = {};
+            appointments.forEach(appointment => {
+                if (appointment.status === 'active' || appointment.status === 'in-production') {
+                    const start = new Date(appointment.serviceDate);
+                    
+                    for (let i = 0; i < appointment.estimatedDays; i++) {
+                        const currentDate = new Date(start);
+                        currentDate.setDate(start.getDate() + i);
+                        
+                        const dateKey = currentDate.toISOString().split('T')[0];
+                        bookedDates[dateKey] = true;
+                    }
+                }
+            });
+        }
+
+        // Função para gerar comprovante do agendamento em PNG
+        function generateAppointmentPNG(appointment) {
+            // Criar um canvas para gerar a imagem
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 600;
+            const ctx = canvas.getContext('2d');
             
-            // Formata a data para o nome do arquivo
-            const dateForFilename = appointment.serviceDate.split('-').reverse().join('-');
-            const filename = `${appointment.clientName} - ${dateForFilename}.pdf`;
+            // Fundo branco
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Adiciona conteúdo ao PDF
-            doc.setFontSize(20);
-            doc.setTextColor(44, 62, 80);
-            doc.text('Costur Confecções', 105, 20, { align: 'center' });
+            // Cabeçalho
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, canvas.width, 80);
             
-            doc.setFontSize(16);
-            doc.setTextColor(52, 152, 219);
-            doc.text('Comprovante de Agendamento', 105, 35, { align: 'center' });
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Costur Confecções', canvas.width / 2, 35);
             
-            doc.setFontSize(12);
-            doc.setTextColor(0, 0, 0);
-            
-            let yPosition = 60;
+            ctx.font = '16px Arial';
+            ctx.fillText('Comprovante de Agendamento', canvas.width / 2, 60);
             
             // Informações do agendamento
-            doc.text(`Cliente: ${appointment.clientName}`, 20, yPosition);
-            yPosition += 10;
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText('Informações do Agendamento', 50, 120);
             
-            doc.text(`Agendado por: ${appointment.scheduledBy}`, 20, yPosition);
-            yPosition += 10;
+            ctx.font = '14px Arial';
+            let yPosition = 160;
             
-            doc.text(`Data de Início: ${appointment.serviceDate}`, 20, yPosition);
-            yPosition += 10;
+            ctx.fillText(`Cliente: ${appointment.clientName}`, 50, yPosition);
+            yPosition += 30;
             
-            doc.text(`Horário: ${appointment.serviceTime}`, 20, yPosition);
-            yPosition += 10;
+            ctx.fillText(`Agendado por: ${appointment.scheduledBy}`, 50, yPosition);
+            yPosition += 30;
             
-            doc.text(`Quantidade de Peças: ${appointment.quantity}`, 20, yPosition);
-            yPosition += 10;
+            ctx.fillText(`Data de Início: ${appointment.serviceDate}`, 50, yPosition);
+            yPosition += 30;
             
-            doc.text(`Tipo de Serviço: ${appointment.serviceType}`, 20, yPosition);
-            yPosition += 10;
+            ctx.fillText(`Horário: ${appointment.serviceTime}`, 50, yPosition);
+            yPosition += 30;
             
-            doc.text(`Dias Estimados: ${appointment.estimatedDays} dias`, 20, yPosition);
-            yPosition += 10;
+            ctx.fillText(`Quantidade de Peças: ${appointment.quantity}`, 50, yPosition);
+            yPosition += 30;
+            
+            ctx.fillText(`Tipo de Serviço: ${appointment.serviceType}`, 50, yPosition);
+            yPosition += 30;
+            
+            ctx.fillText(`Status: ${getStatusText(appointment.status)}`, 50, yPosition);
+            yPosition += 30;
+            
+            ctx.fillText(`Dias Estimados: ${appointment.estimatedDays} dias`, 50, yPosition);
+            yPosition += 30;
             
             const completionDate = calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays);
-            doc.text(`Data de Término: ${completionDate.toLocaleDateString('pt-BR')}`, 20, yPosition);
-            yPosition += 15;
+            ctx.fillText(`Data de Término: ${completionDate.toLocaleDateString('pt-BR')}`, 50, yPosition);
+            yPosition += 40;
             
-            doc.text(`Nº do Documento: ${appointment.documentNumber || 'DOC-' + appointment.id.toString().slice(-6)}`, 20, yPosition);
-            yPosition += 20;
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(`Nº do Documento: ${appointment.documentNumber || 'DOC-' + appointment.id.toString().slice(-6)}`, 50, yPosition);
             
             // Rodapé
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
-            doc.text('Costur Confecções - Sua marca, nossa costura', 105, 280, { align: 'center' });
-            doc.text('Rua professor ferrucio, 436, São Francisco - Caruaru/PE', 105, 285, { align: 'center' });
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Costur Confecções - Sua marca, nossa costura', canvas.width / 2, 550);
+            ctx.fillText('Rua professor ferrucio, 436, São Francisco - Caruaru/PE', canvas.width / 2, 570);
             
-            // Salva o PDF
-            doc.save(filename);
+            // Converter para PNG e fazer download
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `${appointment.clientName} - ${appointment.serviceDate.split('-').reverse().join('-')}.png`;
+            link.href = dataURL;
+            link.click();
         }
 
-        // Função para mostrar formulário de correção
-        function showCorrectionForm(index) {
-            currentEditingIndex = index;
+        // Função para obter texto do status
+        function getStatusText(status) {
+            switch(status) {
+                case 'active': return 'Agendado';
+                case 'in-production': return 'Em produção';
+                case 'completed': return 'Realizado';
+                case 'cancelled': return 'Cancelado';
+                default: return status;
+            }
+        }
+
+        // Função para abrir modal com detalhes do agendamento
+        function showAppointmentDetails(index) {
+            currentAppointmentIndex = index;
             const appointment = appointments[index];
             
-            const correctionFormHTML = `
-                <div class="correction-form" id="correction-form-${index}">
-                    <h4><i class="fas fa-edit"></i> Corrigir Agendamento</h4>
-                    
+            let statusClass = 'status-booked';
+            let statusText = 'Agendado';
+            
+            if (appointment.status === 'cancelled') {
+                statusClass = 'status-cancelled';
+                statusText = 'Cancelado';
+            } else if (appointment.status === 'completed') {
+                statusClass = 'status-completed';
+                statusText = 'Realizado';
+            } else if (appointment.status === 'in-production') {
+                statusClass = 'status-in-production';
+                statusText = 'Em produção';
+            }
+            
+            const detailsHTML = `
+                <div class="appointment-details">
+                    <h3>${appointment.clientName}</h3>
+                    <p><strong>Agendado por:</strong> ${appointment.scheduledBy}</p>
+                    <p><strong>Data de Início:</strong> ${appointment.serviceDate}</p>
+                    <p><strong>Horário:</strong> ${appointment.serviceTime}</p>
+                    <p><strong>Quantidade de Peças:</strong> ${appointment.quantity}</p>
+                    <p><strong>Tipo de Serviço:</strong> ${appointment.serviceType}</p>
+                    <p><strong>Dias Estimados:</strong> ${appointment.estimatedDays} dias</p>
+                    <p><strong>Previsão de Término:</strong> ${calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays).toLocaleDateString('pt-BR')}</p>
+                    <p><strong>Nº do Documento:</strong> ${appointment.documentNumber || 'DOC-' + appointment.id.toString().slice(-6)}</p>
+                    <div class="appointment-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
+            
+            const actionsHTML = `
+                <button class="btn-edit" onclick="showEditStatus()">
+                    <i class="fas fa-edit"></i> Editar Status
+                </button>
+            `;
+            
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-eye"></i> Detalhes do Agendamento';
+            document.getElementById('modal-content-area').innerHTML = detailsHTML;
+            document.getElementById('modal-actions').innerHTML = actionsHTML;
+            document.getElementById('appointment-modal').style.display = 'flex';
+        }
+
+        // Função para mostrar edição de status no modal
+        function showEditStatus() {
+            const appointment = appointments[currentAppointmentIndex];
+            
+            const password = prompt('Digite a senha para editar o status:');
+            if (password !== "CosturADM2023") {
+                alert('Senha incorreta!');
+                return;
+            }
+            
+            const editHTML = `
+                <div class="appointment-details">
+                    <h3>${appointment.clientName}</h3>
+                    <p><strong>Agendado por:</strong> ${appointment.scheduledBy}</p>
+                    <p><strong>Data de Início:</strong> ${appointment.serviceDate}</p>
+                    <p><strong>Horário:</strong> ${appointment.serviceTime}</p>
+                    <p><strong>Quantidade de Peças:</strong> ${appointment.quantity}</p>
+                    <p><strong>Tipo de Serviço:</strong> ${appointment.serviceType}</p>
+                </div>
+                
+                <div class="edit-section">
+                    <h4><i class="fas fa-edit"></i> Editar Status</h4>
                     <div class="form-group">
-                        <label>Cliente (não editável)</label>
-                        <input type="text" value="${appointment.clientName}" disabled style="background-color: #f5f5f5;">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="correction-scheduled-by-${index}">Agendado por</label>
-                        <select id="correction-scheduled-by-${index}">
-                            <option value="Wallison Vinicius" ${appointment.scheduledBy === 'Wallison Vinicius' ? 'selected' : ''}>Wallison Vinicius</option>
-                            <option value="Eduarda Emmanoelly" ${appointment.scheduledBy === 'Eduarda Emmanoelly' ? 'selected' : ''}>Eduarda Emmanoelly</option>
+                        <label for="edit-status">Status do Agendamento</label>
+                        <select id="edit-status" required>
+                            <option value="active" ${appointment.status === 'active' ? 'selected' : ''}>Agendado</option>
+                            <option value="in-production" ${appointment.status === 'in-production' ? 'selected' : ''}>Em produção</option>
+                            <option value="completed" ${appointment.status === 'completed' ? 'selected' : ''}>Realizado</option>
+                            <option value="cancelled" ${appointment.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
                         </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="correction-service-date-${index}">Data de Início</label>
-                        <input type="date" id="correction-service-date-${index}" value="${appointment.serviceDate}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="correction-quantity-${index}">Quantidade de Peças</label>
-                        <input type="number" id="correction-quantity-${index}" value="${appointment.quantity}" min="1">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="correction-service-type-${index}">Tipo de Serviço</label>
-                        <select id="correction-service-type-${index}">
-                            <option value="confecção completa" ${appointment.serviceType === 'confecção completa' ? 'selected' : ''}>Confecção completa</option>
-                            <option value="Confecção parcial" ${appointment.serviceType === 'Confecção parcial' ? 'selected' : ''}>Confecção parcial</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Horário de Início</label>
-                        <div class="time-slots" id="correction-time-slots-${index}">
-                            ${generateTimeSlotsForCorrection(appointment.serviceTime)}
-                        </div>
-                    </div>
-                    
-                    <div class="correction-actions">
-                        <button type="button" class="btn-save" onclick="saveCorrection(${index})">
-                            <i class="fas fa-save"></i> Salvar Correção
-                        </button>
-                        <button type="button" class="btn-cancel" onclick="cancelCorrection(${index})">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
                     </div>
                 </div>
             `;
             
-            // Remove qualquer formulário de correção existente
-            document.querySelectorAll('.correction-form').forEach(form => form.remove());
+            const actionsHTML = `
+                <button class="btn-save" onclick="saveStatusEdit()">
+                    <i class="fas fa-save"></i> Salvar Status
+                </button>
+                <button class="btn-cancel" onclick="showAppointmentDetails(${currentAppointmentIndex})">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            `;
             
-            // Adiciona o novo formulário após o item do agendamento
-            const appointmentItem = document.querySelector(`[data-appointment-index="${index}"]`);
-            appointmentItem.insertAdjacentHTML('afterend', correctionFormHTML);
-            
-            // Adiciona eventos aos time slots
-            document.querySelectorAll(`#correction-time-slots-${index} .time-slot`).forEach(slot => {
-                slot.addEventListener('click', function() {
-                    document.querySelectorAll(`#correction-time-slots-${index} .time-slot.selected`).forEach(s => {
-                        s.classList.remove('selected');
-                    });
-                    this.classList.add('selected');
-                });
-            });
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-edit"></i> Editar Status do Agendamento';
+            document.getElementById('modal-content-area').innerHTML = editHTML;
+            document.getElementById('modal-actions').innerHTML = actionsHTML;
         }
 
-        // Função para gerar time slots para correção
-        function generateTimeSlotsForCorrection(selectedTime) {
-            const timeSlots = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
-            let html = '';
+        // Função para salvar edição de status
+        async function saveStatusEdit() {
+            const appointment = appointments[currentAppointmentIndex];
             
-            timeSlots.forEach(time => {
-                const isSelected = time === selectedTime ? 'selected' : '';
-                html += `<div class="time-slot available ${isSelected}" data-time="${time}">${time}</div>`;
-            });
-            
-            return html;
-        }
-
-        // Função para salvar correção
-        function saveCorrection(index) {
-            const appointment = appointments[index];
-            
-            // Coleta os novos valores
-            const scheduledBy = document.getElementById(`correction-scheduled-by-${index}`).value;
-            const serviceDate = document.getElementById(`correction-service-date-${index}`).value;
-            const quantity = document.getElementById(`correction-quantity-${index}`).value;
-            const serviceType = document.getElementById(`correction-service-type-${index}`).value;
-            const selectedTimeElement = document.querySelector(`#correction-time-slots-${index} .time-slot.selected`);
-            
-            if (!selectedTimeElement) {
-                alert('Por favor, selecione um horário.');
-                return;
-            }
-            
-            const serviceTime = selectedTimeElement.getAttribute('data-time');
+            // Coleta o novo status
+            const status = document.getElementById('edit-status').value;
             
             // Atualiza o agendamento
-            appointment.scheduledBy = scheduledBy;
-            appointment.serviceDate = serviceDate;
-            appointment.quantity = quantity;
-            appointment.serviceType = serviceType;
-            appointment.serviceTime = serviceTime;
-            appointment.estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
+            const updates = {
+                status: status
+            };
             
-            // Atualiza o localStorage
-            localStorage.setItem('appointments', JSON.stringify(appointments));
-            
-            // Atualiza a interface
-            loadAdminAppointments();
-            loadAppointmentsList();
-            updateStats();
-            
-            // Remove o formulário de correção
-            document.getElementById(`correction-form-${index}`).remove();
-            
-            alert('Correção salva com sucesso!');
-        }
-
-        // Função para cancelar correção
-        function cancelCorrection(index) {
-            document.getElementById(`correction-form-${index}`).remove();
-        }
-
-        // Funções JavaScript para o sistema de agendamento
-        function openAdmin() {
-            document.getElementById('admin-modal').style.display = 'flex';
-            document.getElementById('admin-content').classList.add('hidden');
-            document.getElementById('admin-login').classList.remove('hidden');
-            document.getElementById('admin-password').value = '';
-        }
-        
-        function closeAdmin() {
-            document.getElementById('admin-modal').style.display = 'none';
-        }
-        
-        function verifyAdminPassword() {
-            const password = document.getElementById('admin-password').value;
-            if (password === "CosturADM2023") {
-                document.getElementById('admin-content').classList.remove('hidden');
-                document.getElementById('admin-login').classList.add('hidden');
-                loadAdminAppointments();
-            } else {
-                alert("Senha incorreta!");
+            try {
+                await updateAppointmentInFirestore(appointment.id, updates);
+                
+                // Atualiza o agendamento local
+                Object.assign(appointment, updates);
+                
+                // Atualiza a interface
+                loadAppointmentsList();
+                updateStats();
+                generateCalendar(currentMonth, currentYear);
+                
+                // Fecha o modal
+                closeModal();
+                
+                alert('Status atualizado com sucesso!');
+            } catch (error) {
+                alert('Erro ao salvar status. Tente novamente.');
             }
         }
 
-        function loadAdminAppointments() {
-            const adminAppointmentsContainer = document.getElementById('admin-appointments');
+        // Função para fechar modal
+        function closeModal() {
+            document.getElementById('appointment-modal').style.display = 'none';
+            currentAppointmentIndex = null;
+        }
+
+        // Função para carregar agendamentos na lista principal
+        function loadAppointmentsList() {
+            const appointmentsContainer = document.getElementById('appointments-list');
             
             if (appointments.length === 0) {
-                adminAppointmentsContainer.innerHTML = '<p>Nenhum agendamento encontrado.</p>';
+                appointmentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum agendamento encontrado.</p>';
                 return;
             }
             
-            let adminAppointmentsHTML = '';
+            let appointmentsHTML = '';
             
             appointments.forEach((appointment, index) => {
-                // Aplicar filtro
-                if (currentFilter !== 'all' && appointment.status !== currentFilter) {
-                    return;
-                }
-                
                 let statusClass = 'status-booked';
                 let statusText = 'Agendado';
                 
@@ -1915,166 +1279,34 @@
                 } else if (appointment.status === 'completed') {
                     statusClass = 'status-completed';
                     statusText = 'Realizado';
+                } else if (appointment.status === 'in-production') {
+                    statusClass = 'status-in-production';
+                    statusText = 'Em produção';
                 }
                 
-                adminAppointmentsHTML += `
-                    <div class="admin-appointment-item" data-appointment-index="${index}">
+                appointmentsHTML += `
+                    <div class="appointment-item" data-appointment-id="${appointment.id}">
                         <div class="appointment-details">
                             <h4>${appointment.clientName}</h4>
                             <p><strong>Agendado por:</strong> ${appointment.scheduledBy}</p>
                             <p><strong>Data:</strong> ${appointment.serviceDate} às ${appointment.serviceTime}</p>
                             <p><strong>Peças:</strong> ${appointment.quantity} | <strong>Tipo:</strong> ${appointment.serviceType}</p>
-                            <p><strong>Dias estimados:</strong> ${appointment.estimatedDays} dias</p>
+                            <p><strong>Previsão de Término:</strong> ${calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays).toLocaleDateString('pt-BR')}</p>
                             <div class="appointment-status ${statusClass}">${statusText}</div>
                         </div>
                         <div class="appointment-actions">
-                            ${appointment.status === 'active' ? `
-                                <button class="btn-complete" onclick="completeAppointment(${index})">Marcar como Realizado</button>
-                                <button class="btn-correct" onclick="showCorrectionForm(${index})">Corrigir</button>
-                                <button class="btn-cancel" onclick="cancelAppointment(${index})">Cancelar</button>
-                            ` : ''}
-                            <button class="btn-delete" onclick="deleteAppointment(${index})">Excluir</button>
+                            <button class="btn-view" onclick="showAppointmentDetails(${index})">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
                         </div>
                     </div>
                 `;
             });
             
-            adminAppointmentsContainer.innerHTML = adminAppointmentsHTML;
-        }
-
-        // Função para marcar agendamento como realizado
-        function completeAppointment(index) {
-            if (confirm('Tem certeza que deseja marcar este agendamento como realizado?')) {
-                appointments[index].status = 'completed';
-                localStorage.setItem('appointments', JSON.stringify(appointments));
-                loadAdminAppointments();
-                loadAppointmentsList();
-                updateStats();
-                alert('Agendamento marcado como realizado!');
-            }
+            appointmentsContainer.innerHTML = appointmentsHTML;
         }
         
-        function cancelAppointment(index) {
-            if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
-                appointments[index].status = 'cancelled';
-                localStorage.setItem('appointments', JSON.stringify(appointments));
-                loadAdminAppointments();
-                loadAppointmentsList();
-                alert('Agendamento cancelado com sucesso!');
-            }
-        }
-        
-        function deleteAppointment(index) {
-            if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-                const deletedAppointment = appointments[index];
-                
-                // Remove as datas dos dias ocupados
-                const startDate = new Date(deletedAppointment.serviceDate);
-                for (let i = 0; i < deletedAppointment.estimatedDays; i++) {
-                    const currentDate = new Date(startDate);
-                    currentDate.setDate(startDate.getDate() + i);
-                    const dateKey = currentDate.toISOString().split('T')[0];
-                    delete bookedDates[dateKey];
-                }
-                
-                localStorage.setItem('bookedDates', JSON.stringify(bookedDates));
-                
-                appointments.splice(index, 1);
-                localStorage.setItem('appointments', JSON.stringify(appointments));
-                
-                // Atualiza a interface
-                loadAdminAppointments();
-                loadAppointmentsList();
-                generateCalendar(currentMonth, currentYear);
-                updateStats();
-                alert('Agendamento excluído com sucesso!');
-            }
-        }
-
-        // Função para carregar agendamentos na lista principal
-        function loadAppointmentsList() {
-            const activeAppointmentsContainer = document.getElementById('appointments-list');
-            const completedAppointmentsContainer = document.getElementById('completed-list');
-            const cancelledAppointmentsContainer = document.getElementById('cancelled-list');
-            
-            const activeAppointments = appointments.filter(a => a.status === 'active');
-            const completedAppointments = appointments.filter(a => a.status === 'completed');
-            const cancelledAppointments = appointments.filter(a => a.status === 'cancelled');
-            
-            // Agendamentos Ativos
-            if (activeAppointments.length === 0) {
-                activeAppointmentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum agendamento ativo encontrado.</p>';
-            } else {
-                let activeHTML = '';
-                activeAppointments.forEach((appointment, index) => {
-                    activeHTML += `
-                        <div class="appointment-item">
-                            <div class="appointment-details">
-                                <h4>${appointment.clientName}</h4>
-                                <p><strong>Data:</strong> ${appointment.serviceDate} às ${appointment.serviceTime}</p>
-                                <p><strong>Peças:</strong> ${appointment.quantity} | <strong>Tipo:</strong> ${appointment.serviceType}</p>
-                                <p><strong>Previsão de Término:</strong> ${calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays).toLocaleDateString('pt-BR')}</p>
-                                <div class="appointment-status status-booked">Agendado</div>
-                            </div>
-                            <div class="appointment-actions">
-                                <button class="btn-download" onclick="downloadAppointmentPDF(${appointments.indexOf(appointment)})">
-                                    <i class="fas fa-download"></i> PDF
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-                activeAppointmentsContainer.innerHTML = activeHTML;
-            }
-            
-            // Agendamentos Realizados
-            if (completedAppointments.length === 0) {
-                completedAppointmentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum agendamento realizado encontrado.</p>';
-            } else {
-                let completedHTML = '';
-                completedAppointments.forEach((appointment, index) => {
-                    completedHTML += `
-                        <div class="appointment-item">
-                            <div class="appointment-details">
-                                <h4>${appointment.clientName}</h4>
-                                <p><strong>Data:</strong> ${appointment.serviceDate} às ${appointment.serviceTime}</p>
-                                <p><strong>Peças:</strong> ${appointment.quantity} | <strong>Tipo:</strong> ${appointment.serviceType}</p>
-                                <div class="appointment-status status-completed">Realizado</div>
-                            </div>
-                        </div>
-                    `;
-                });
-                completedAppointmentsContainer.innerHTML = completedHTML;
-            }
-            
-            // Agendamentos Cancelados
-            if (cancelledAppointments.length === 0) {
-                cancelledAppointmentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum agendamento cancelado encontrado.</p>';
-            } else {
-                let cancelledHTML = '';
-                cancelledAppointments.forEach((appointment, index) => {
-                    cancelledHTML += `
-                        <div class="appointment-item">
-                            <div class="appointment-details">
-                                <h4>${appointment.clientName}</h4>
-                                <p><strong>Data:</strong> ${appointment.serviceDate} às ${appointment.serviceTime}</p>
-                                <p><strong>Peças:</strong> ${appointment.quantity} | <strong>Tipo:</strong> ${appointment.serviceType}</p>
-                                <div class="appointment-status status-cancelled">Cancelado</div>
-                            </div>
-                        </div>
-                    `;
-                });
-                cancelledAppointmentsContainer.innerHTML = cancelledHTML;
-            }
-        }
-
-        // Função para download do PDF
-        function downloadAppointmentPDF(index) {
-            const appointment = appointments[index];
-            generateAppointmentPDF(appointment);
-        }
-        
-        // Função para gerar o calendário - CORRIGIDA
+        // Função para gerar o calendário
         function generateCalendar(month, year) {
             try {
                 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -2116,16 +1348,6 @@
                     // Verifica se é hoje
                     if (day === currentDay && month === currentMonthToday && year === currentYearToday) {
                         dayClass += " today";
-                    }
-                    
-                    // Verifica se é domingo
-                    if (new Date(year, month, day).getDay() === 0) {
-                        dayClass += " sunday";
-                    }
-                    
-                    // Verifica se é sábado
-                    if (new Date(year, month, day).getDay() === 6) {
-                        dayClass += " saturday";
                     }
                     
                     calendarHTML += `<div class="${dayClass}" data-day="${day}" data-month="${month}" data-year="${year}">${day}</div>`;
@@ -2205,9 +1427,9 @@
         
         // Função para atualizar estatísticas
         function updateStats() {
-            const activeAppointments = appointments.filter(a => a.status === 'active').length;
+            const activeAppointments = appointments.filter(a => a.status === 'active' || a.status === 'in-production').length;
             const totalPieces = appointments.reduce((sum, appointment) => {
-                if (appointment.status === 'active') {
+                if (appointment.status === 'active' || appointment.status === 'in-production') {
                     return sum + parseInt(appointment.quantity);
                 }
                 return sum;
@@ -2215,7 +1437,7 @@
             
             const uniqueDates = new Set();
             appointments.forEach(appointment => {
-                if (appointment.status === 'active') {
+                if (appointment.status === 'active' || appointment.status === 'in-production') {
                     uniqueDates.add(appointment.serviceDate);
                 }
             });
@@ -2227,6 +1449,9 @@
         
         // Inicialização do sistema
         document.addEventListener('DOMContentLoaded', function() {
+            // Carrega agendamentos do Firestore
+            loadAppointmentsFromFirestore();
+            
             // Gera o calendário inicial
             generateCalendar(currentMonth, currentYear);
             
@@ -2261,7 +1486,7 @@
             document.getElementById('quantity').addEventListener('change', updateScheduleInfo);
             
             // Adiciona evento de envio do formulário
-            document.getElementById('appointment-form').addEventListener('submit', function(e) {
+            document.getElementById('appointment-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const clientName = document.getElementById('client-name').value;
@@ -2269,6 +1494,7 @@
                 const serviceDate = document.getElementById('service-date').value;
                 const quantity = document.getElementById('quantity').value;
                 const serviceType = document.getElementById('service-type').value;
+                const status = document.getElementById('appointment-status').value;
                 const selectedTime = document.querySelector('.time-slot.selected')?.getAttribute('data-time');
                 
                 if (!selectedTime) {
@@ -2282,78 +1508,51 @@
                 
                 // Cria o agendamento
                 const newAppointment = {
-                    id: Date.now(),
                     clientName,
                     scheduledBy,
                     serviceDate,
                     serviceTime: selectedTime,
-                    quantity,
+                    quantity: parseInt(quantity),
                     serviceType,
+                    status: status === 'Agendado' ? 'active' : 
+                           status === 'Em produção' ? 'in-production' :
+                           status === 'Realizado' ? 'completed' : 'cancelled',
                     estimatedDays,
                     documentNumber,
-                    status: 'active',
                     createdAt: new Date().toISOString()
                 };
                 
-                // Adiciona ao array de agendamentos
-                appointments.push(newAppointment);
-                localStorage.setItem('appointments', JSON.stringify(appointments));
-                
-                // Marca os dias como ocupados no calendário
-                markDaysAsBooked(serviceDate, estimatedDays);
-                
-                // Gera o PDF automaticamente
-                generateAppointmentPDF(newAppointment);
-                
-                // Atualiza a interface
-                generateCalendar(currentMonth, currentYear);
-                loadAppointmentsList();
-                updateStats();
-                
-                alert('Agendamento realizado com sucesso! O PDF foi baixado automaticamente.');
-                
-                // Limpa o formulário
-                document.getElementById('appointment-form').reset();
-                document.getElementById('time-slots').innerHTML = '';
-                document.getElementById('entry-datetime').textContent = '-';
-                document.getElementById('completion-datetime').textContent = '-';
-                document.getElementById('document-number').textContent = 'Nº do Documento: Aguardando dados...';
-                document.getElementById('estimated-days').textContent = '0';
-            });
-            
-            // Sistema de tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    // Remove a classe active de todas as tabs
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    // Adiciona a classe active à tab clicada
-                    this.classList.add('active');
+                try {
+                    // Salva no Firestore
+                    const id = await saveAppointmentToFirestore(newAppointment);
+                    newAppointment.id = id;
                     
-                    // Esconde todos os conteúdos
-                    document.querySelectorAll('.tab-content').forEach(content => {
-                        content.classList.remove('active');
-                    });
+                    // Adiciona ao array de agendamentos
+                    appointments.push(newAppointment);
                     
-                    // Mostra o conteúdo correspondente
-                    const tabId = this.getAttribute('data-tab');
-                    document.getElementById(`${tabId}-appointments`).classList.add('active');
-                });
-            });
-            
-            // Sistema de filtros na área administrativa
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    // Remove a classe active de todos os botões
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    // Adiciona a classe active ao botão clicado
-                    this.classList.add('active');
+                    // Marca os dias como ocupados no calendário
+                    markDaysAsBooked(serviceDate, estimatedDays);
                     
-                    // Define o filtro atual
-                    currentFilter = this.getAttribute('data-filter');
+                    // Gera o PNG automaticamente
+                    generateAppointmentPNG(newAppointment);
                     
-                    // Atualiza a lista de agendamentos
-                    loadAdminAppointments();
-                });
+                    // Atualiza a interface
+                    generateCalendar(currentMonth, currentYear);
+                    loadAppointmentsList();
+                    updateStats();
+                    
+                    alert('Agendamento realizado com sucesso! O comprovante foi baixado automaticamente.');
+                    
+                    // Limpa o formulário
+                    document.getElementById('appointment-form').reset();
+                    document.getElementById('time-slots').innerHTML = '';
+                    document.getElementById('entry-datetime').textContent = '-';
+                    document.getElementById('completion-datetime').textContent = '-';
+                    document.getElementById('document-number').textContent = 'Nº do Documento: Aguardando dados...';
+                    document.getElementById('estimated-days').textContent = '0';
+                } catch (error) {
+                    alert('Erro ao realizar agendamento. Tente novamente.');
+                }
             });
             
             // Atualiza estatísticas iniciais e lista de agendamentos
