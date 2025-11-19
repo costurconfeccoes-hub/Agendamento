@@ -1025,7 +1025,7 @@
     </footer>
 
     <script>
-        // Configuração do Firebase
+        // CONFIGURAÇÃO EXTREMA - SINCRONIZAÇÃO GARANTIDA
         const firebaseConfig = {
             apiKey: "AIzaSyAc1iUDZEjyDOtrY9UT_idP5_TGODIsc9E",
             authDomain: "costur-agendamentos.firebaseapp.com",
@@ -1035,86 +1035,133 @@
             appId: "1:948222283708:web:a82876883f247e51ede5b9"
         };
 
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
+        // INICIALIZAÇÃO EXTREMA DO FIREBASE
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
-        // Armazenamento de agendamentos
+        // VARIÁVEIS GLOBAIS COM VERIFICAÇÃO EXTREMA
         let appointments = [];
         let bookedDates = {};
         let currentEditingIndex = null;
-
-        // Variáveis globais para o calendário
         let currentDate = new Date();
         let currentMonth = currentDate.getMonth();
         let currentYear = currentDate.getFullYear();
-
-        // Senha para edição
         const EDIT_PASSWORD = "CosturADM2023";
+        let isInitialLoadComplete = false;
 
-        // Função para carregar agendamentos do Firestore
-        async function loadAppointmentsFromFirestore() {
-            try {
-                const snapshot = await db.collection('appointments').orderBy('createdAt', 'desc').get();
-                appointments = [];
-                snapshot.forEach(doc => {
-                    appointments.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Atualizar a interface
-                loadAppointmentsList();
-                updateStats();
-                updateBookedDates(); // Atualizar bookedDates primeiro
-                generateCalendar(currentMonth, currentYear); // Depois gerar calendário
-                
-                console.log("Agendamentos carregados:", appointments.length);
-            } catch (error) {
-                console.error("Erro ao carregar agendamentos:", error);
-            }
-        }
-
-        // Função para salvar agendamento no Firestore
-        async function saveAppointmentToFirestore(appointment) {
-            try {
-                const docRef = await db.collection('appointments').add(appointment);
-                return docRef.id;
-            } catch (error) {
-                console.error("Erro ao salvar agendamento:", error);
-                throw error;
-            }
-        }
-
-        // Função para atualizar agendamento no Firestore
-        async function updateAppointmentInFirestore(id, updates) {
-            try {
-                await db.collection('appointments').doc(id).update(updates);
-            } catch (error) {
-                console.error("Erro ao atualizar agendamento:", error);
-                throw error;
-            }
-        }
-
-        // Função para atualizar bookedDates
-        function updateBookedDates() {
+        // FUNÇÃO EXTREMA PARA ATUALIZAR DATAS OCUPADAS
+        function updateBookedDatesExtreme() {
+            console.log("🔄 ATUALIZANDO DATAS OCUPADAS - EXTREME MODE");
             bookedDates = {};
-            appointments.forEach(appointment => {
+            
+            appointments.forEach((appointment, index) => {
                 if (appointment.status === 'active' || appointment.status === 'in-production') {
                     const start = new Date(appointment.serviceDate);
-                    const estimatedDays = appointment.estimatedDays || calculateEstimatedDays(appointment.serviceDate, appointment.quantity);
+                    const estimatedDays = appointment.estimatedDays > 0 ? appointment.estimatedDays : calculateEstimatedDays(appointment.serviceDate, appointment.quantity);
+                    
+                    console.log(`📅 Agendamento ${index + 1}: ${appointment.clientName}, Dias: ${estimatedDays}`);
                     
                     for (let i = 0; i < estimatedDays; i++) {
                         const currentDate = new Date(start);
                         currentDate.setDate(start.getDate() + i);
-                        
                         const dateKey = currentDate.toISOString().split('T')[0];
                         bookedDates[dateKey] = true;
+                        console.log(`   📌 Ocupado: ${dateKey}`);
                     }
                 }
             });
-            console.log("Datas ocupadas atualizadas:", Object.keys(bookedDates).length);
+            
+            console.log(`✅ TOTAL DATAS OCUPADAS: ${Object.keys(bookedDates).length}`);
+            
+            // FORÇAR ATUALIZAÇÃO IMEDIATA DO CALENDÁRIO
+            if (isInitialLoadComplete) {
+                generateCalendar(currentMonth, currentYear);
+            }
         }
 
-        // Função para calcular dias estimados considerando finais de semana
+        // FUNÇÃO EXTREMA PARA CARREGAR AGENDAMENTOS
+        async function loadAppointmentsFromFirestoreExtreme() {
+            console.log("🔥 CARREGANDO AGENDAMENTOS DO FIREBASE - EXTREME MODE");
+            try {
+                const snapshot = await db.collection('appointments').orderBy('createdAt', 'desc').get();
+                appointments = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    appointments.push({ 
+                        id: doc.id, 
+                        ...data,
+                        // GARANTIR QUE OS DIAS ESTIMADOS EXISTAM
+                        estimatedDays: data.estimatedDays || calculateEstimatedDays(data.serviceDate, data.quantity)
+                    });
+                });
+                
+                console.log(`📊 ${appointments.length} AGENDAMENTOS CARREGADOS`);
+                
+                // ATUALIZAÇÃO EM CASCATA EXTREMA
+                loadAppointmentsList();
+                updateStats();
+                updateBookedDatesExtreme(); // ATUALIZAR DATAS PRIMEIRO
+                
+                isInitialLoadComplete = true;
+                
+                return true;
+            } catch (error) {
+                console.error("❌ ERRO CRÍTICO AO CARREGAR AGENDAMENTOS:", error);
+                return false;
+            }
+        }
+
+        // FUNÇÃO EXTREMA PARA SALVAR AGENDAMENTO
+        async function saveAppointmentToFirestoreExtreme(appointment) {
+            try {
+                // VALIDAÇÃO EXTREMA DOS DADOS
+                if (!appointment.clientName || !appointment.serviceDate || !appointment.quantity) {
+                    throw new Error("Dados do agendamento inválidos");
+                }
+                
+                const docRef = await db.collection('appointments').add(appointment);
+                console.log("✅ AGENDAMENTO SALVO NO FIREBASE:", docRef.id);
+                return docRef.id;
+            } catch (error) {
+                console.error("❌ ERRO AO SALVAR AGENDAMENTO:", error);
+                throw error;
+            }
+        }
+
+        // FUNÇÃO EXTREMA PARA ATUALIZAR AGENDAMENTO
+        async function updateAppointmentInFirestoreExtreme(id, updates) {
+            try {
+                await db.collection('appointments').doc(id).update({
+                    ...updates,
+                    updatedAt: new Date().toISOString()
+                });
+                console.log("✅ AGENDAMENTO ATUALIZADO NO FIREBASE:", id);
+            } catch (error) {
+                console.error("❌ ERRO AO ATUALIZAR AGENDAMENTO:", error);
+                throw error;
+            }
+        }
+
+        // FUNÇÃO EXTREMA PARA MARCAR DIAS COMO OCUPADOS
+        function markDaysAsBookedExtreme(startDate, estimatedDays) {
+            console.log("📍 MARCANDO DIAS COMO OCUPADOS - EXTREME MODE");
+            const start = new Date(startDate);
+            
+            for (let i = 0; i < estimatedDays; i++) {
+                const currentDate = new Date(start);
+                currentDate.setDate(start.getDate() + i);
+                const dateKey = currentDate.toISOString().split('T')[0];
+                bookedDates[dateKey] = true;
+                console.log(`   📌 Novo dia ocupado: ${dateKey}`);
+            }
+            
+            // ATUALIZAÇÃO IMEDIATA E FORÇADA
+            generateCalendar(currentMonth, currentYear);
+        }
+
+        // FUNÇÕES ORIGINAIS (MANTIDAS)
         function calculateEstimatedDays(startDate, quantity) {
             let baseDays = (quantity / 45) + 1;
             let totalDays = Math.ceil(baseDays);
@@ -1127,54 +1174,29 @@
                 checkDate.setDate(currentDate.getDate() + i);
                 let dayOfWeek = checkDate.getDay();
                 
-                if (dayOfWeek === 6) {
-                    weekendDays += 0.25;
-                }
-                else if (dayOfWeek === 0) {
-                    weekendDays += 1;
-                }
+                if (dayOfWeek === 6) weekendDays += 0.25;
+                else if (dayOfWeek === 0) weekendDays += 1;
             }
             
             totalDays += weekendDays;
             return Math.ceil(totalDays);
         }
 
-        // Função para calcular a data de término
         function calculateCompletionDate(startDate, estimatedDays) {
             let completionDate = new Date(startDate);
             completionDate.setDate(completionDate.getDate() + estimatedDays);
             return completionDate;
         }
 
-        // Função para marcar dias como ocupados no calendário
-        function markDaysAsBooked(startDate, estimatedDays) {
-            const start = new Date(startDate);
-            
-            for (let i = 0; i < estimatedDays; i++) {
-                const currentDate = new Date(start);
-                currentDate.setDate(start.getDate() + i);
-                
-                const dateKey = currentDate.toISOString().split('T')[0];
-                bookedDates[dateKey] = true;
-            }
-            
-            updateBookedDates();
-            generateCalendar(currentMonth, currentYear); // Atualizar calendário imediatamente
-        }
-
-        // Função para gerar comprovante do agendamento em PNG
         function generateAppointmentPNG(appointment) {
-            // Criar um canvas para gerar a imagem
             const canvas = document.createElement('canvas');
             canvas.width = 800;
             canvas.height = 600;
             const ctx = canvas.getContext('2d');
             
-            // Fundo branco
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Cabeçalho
             ctx.fillStyle = '#2c3e50';
             ctx.fillRect(0, 0, canvas.width, 80);
             
@@ -1182,11 +1204,9 @@
             ctx.font = 'bold 24px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('Costur Confecções', canvas.width / 2, 35);
-            
             ctx.font = '16px Arial';
             ctx.fillText('Comprovante de Agendamento', canvas.width / 2, 60);
             
-            // Informações do agendamento
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             ctx.font = 'bold 18px Arial';
@@ -1194,46 +1214,33 @@
             
             ctx.font = '14px Arial';
             let yPosition = 160;
+            const info = [
+                `Cliente: ${appointment.clientName}`,
+                `Agendado por: ${appointment.scheduledBy}`,
+                `Data de Início: ${appointment.serviceDate}`,
+                `Horário: ${appointment.serviceTime}`,
+                `Quantidade de Peças: ${appointment.quantity}`,
+                `Tipo de Serviço: ${appointment.serviceType}`,
+                `Status: ${appointment.status}`,
+                `Dias Estimados: ${appointment.estimatedDays} dias`,
+                `Data de Término: ${calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays).toLocaleDateString('pt-BR')}`
+            ];
             
-            ctx.fillText(`Cliente: ${appointment.clientName}`, 50, yPosition);
-            yPosition += 30;
+            info.forEach(text => {
+                ctx.fillText(text, 50, yPosition);
+                yPosition += 30;
+            });
             
-            ctx.fillText(`Agendado por: ${appointment.scheduledBy}`, 50, yPosition);
-            yPosition += 30;
-            
-            ctx.fillText(`Data de Início: ${appointment.serviceDate}`, 50, yPosition);
-            yPosition += 30;
-            
-            ctx.fillText(`Horário: ${appointment.serviceTime}`, 50, yPosition);
-            yPosition += 30;
-            
-            ctx.fillText(`Quantidade de Peças: ${appointment.quantity}`, 50, yPosition);
-            yPosition += 30;
-            
-            ctx.fillText(`Tipo de Serviço: ${appointment.serviceType}`, 50, yPosition);
-            yPosition += 30;
-            
-            ctx.fillText(`Status: ${appointment.status}`, 50, yPosition);
-            yPosition += 30;
-            
-            ctx.fillText(`Dias Estimados: ${appointment.estimatedDays} dias`, 50, yPosition);
-            yPosition += 30;
-            
-            const completionDate = calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays);
-            ctx.fillText(`Data de Término: ${completionDate.toLocaleDateString('pt-BR')}`, 50, yPosition);
-            yPosition += 40;
-            
+            yPosition += 10;
             ctx.font = 'bold 16px Arial';
             ctx.fillText(`Nº do Documento: ${appointment.documentNumber || 'DOC-' + appointment.id.toString().slice(-6)}`, 50, yPosition);
             
-            // Rodapé
             ctx.fillStyle = '#2c3e50';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('Costur Confecções - Sua marca, nossa costura', canvas.width / 2, 550);
             ctx.fillText('Rua professor ferrucio, 436, São Francisco - Caruaru/PE', canvas.width / 2, 570);
             
-            // Converter para PNG e fazer download
             const dataURL = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.download = `${appointment.clientName} - ${appointment.serviceDate.split('-').reverse().join('-')}.png`;
@@ -1241,12 +1248,10 @@
             link.click();
         }
 
-        // Função para mostrar modal de edição
         function showEditModal(index) {
             currentEditingIndex = index;
             const appointment = appointments[index];
             
-            // Preenche o formulário com os dados atuais
             document.getElementById('edit-client-name').value = appointment.clientName;
             document.getElementById('edit-scheduled-by').value = appointment.scheduledBy;
             document.getElementById('edit-service-date').value = appointment.serviceDate;
@@ -1254,23 +1259,16 @@
             document.getElementById('edit-service-type').value = appointment.serviceType;
             document.getElementById('edit-status').value = appointment.status;
             
-            // Gera os time slots
             generateTimeSlotsForEdit(appointment.serviceTime);
-            
-            // Limpa o campo de senha
             document.getElementById('edit-password').value = '';
-            
-            // Mostra o modal
             document.getElementById('edit-modal').style.display = 'flex';
         }
 
-        // Função para gerar time slots para edição
         function generateTimeSlotsForEdit(selectedTime) {
             const timeSlotsContainer = document.getElementById('edit-time-slots');
             const timeSlots = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
             
             let timeSlotsHTML = '';
-            
             timeSlots.forEach(time => {
                 const isSelected = time === selectedTime ? 'selected' : '';
                 timeSlotsHTML += `<div class="time-slot available ${isSelected}" data-time="${time}">${time}</div>`;
@@ -1278,7 +1276,6 @@
             
             timeSlotsContainer.innerHTML = timeSlotsHTML;
             
-            // Adiciona eventos aos time slots
             document.querySelectorAll('#edit-time-slots .time-slot').forEach(slot => {
                 slot.addEventListener('click', function() {
                     document.querySelectorAll('#edit-time-slots .time-slot.selected').forEach(s => {
@@ -1289,18 +1286,15 @@
             });
         }
 
-        // Função para salvar edição
         async function saveEdit() {
             const appointment = appointments[currentEditingIndex];
-            
-            // Verifica a senha
             const password = document.getElementById('edit-password').value;
+            
             if (password !== EDIT_PASSWORD) {
                 alert('Senha incorreta. A edição não foi autorizada.');
                 return;
             }
             
-            // Coleta os novos valores
             const clientName = document.getElementById('edit-client-name').value;
             const scheduledBy = document.getElementById('edit-scheduled-by').value;
             const serviceDate = document.getElementById('edit-service-date').value;
@@ -1315,11 +1309,8 @@
             }
             
             const serviceTime = selectedTimeElement.getAttribute('data-time');
-            
-            // Calcula os novos dias estimados
             const estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
             
-            // Atualiza o agendamento
             const updates = {
                 clientName: clientName,
                 scheduledBy: scheduledBy,
@@ -1333,22 +1324,12 @@
             };
             
             try {
-                await updateAppointmentInFirestore(appointment.id, updates);
-                
-                // Atualiza o agendamento local
+                await updateAppointmentInFirestoreExtreme(appointment.id, updates);
                 Object.assign(appointment, updates);
-                
-                // Atualiza as datas ocupadas
-                updateBookedDates();
-                
-                // Atualiza a interface
+                updateBookedDatesExtreme(); // ATUALIZAÇÃO EXTREMA
                 loadAppointmentsList();
                 updateStats();
-                generateCalendar(currentMonth, currentYear);
-                
-                // Fecha o modal
                 closeEditModal();
-                
                 alert('Agendamento atualizado com sucesso!');
             } catch (error) {
                 console.error('Erro ao salvar edição:', error);
@@ -1356,13 +1337,11 @@
             }
         }
 
-        // Função para fechar o modal de edição
         function closeEditModal() {
             document.getElementById('edit-modal').style.display = 'none';
             currentEditingIndex = null;
         }
 
-        // Função para carregar agendamentos na lista principal
         function loadAppointmentsList() {
             const appointmentsContainer = document.getElementById('appointments-list');
             
@@ -1372,7 +1351,6 @@
             }
             
             let appointmentsHTML = '';
-            
             appointments.forEach((appointment, index) => {
                 let statusClass = 'status-booked';
                 let statusText = 'Agendado';
@@ -1410,17 +1388,13 @@
             appointmentsContainer.innerHTML = appointmentsHTML;
         }
         
-        // Função para gerar o calendário
         function generateCalendar(month, year) {
             try {
-                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                                   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-                
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
                 document.getElementById('current-month').textContent = `${monthNames[month]} ${year}`;
                 
                 const firstDay = new Date(year, month, 1).getDay();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
-                
                 const today = new Date();
                 const currentDay = today.getDate();
                 const currentMonthToday = today.getMonth();
@@ -1429,27 +1403,22 @@
                 const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
                 let calendarHTML = '';
                 
-                // Cabeçalho com dias da semana
                 dayNames.forEach(day => {
                     calendarHTML += `<div class="calendar-day header">${day}</div>`;
                 });
                 
-                // Dias vazios no início
                 for (let i = 0; i < firstDay; i++) {
                     calendarHTML += `<div class="calendar-day unavailable"></div>`;
                 }
                 
-                // Dias do mês
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                     let dayClass = "calendar-day available";
                     
-                    // Verifica se está ocupado
                     if (bookedDates[dateKey]) {
                         dayClass = "calendar-day booked";
                     }
                     
-                    // Verifica se é hoje
                     if (day === currentDay && month === currentMonthToday && year === currentYearToday) {
                         dayClass += " today";
                     }
@@ -1459,36 +1428,28 @@
                 
                 document.getElementById('calendar-days').innerHTML = calendarHTML;
                 
-                // Adiciona eventos de clique aos dias disponíveis
                 document.querySelectorAll('.calendar-day.available').forEach(day => {
                     day.addEventListener('click', function() {
                         const selectedDay = this.getAttribute('data-day');
                         const selectedMonth = parseInt(this.getAttribute('data-month')) + 1;
                         const selectedYear = this.getAttribute('data-year');
-                        
                         const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${selectedDay.padStart(2, '0')}`;
                         document.getElementById('service-date').value = formattedDate;
                         updateTimeSlots();
                     });
                 });
                 
+                console.log("📅 CALENDÁRIO ATUALIZADO COM SUCESSO");
             } catch (error) {
-                console.error("Erro ao gerar calendário:", error);
-                document.getElementById('current-month').textContent = "Erro ao carregar";
-                document.getElementById('calendar-days').innerHTML = '<div class="calendar-day">Erro</div>';
+                console.error("❌ ERRO AO GERAR CALENDÁRIO:", error);
             }
         }
         
-        // Função para atualizar os horários disponíveis
         function updateTimeSlots() {
             const timeSlotsContainer = document.getElementById('time-slots');
-            const timeSlots = [
-                '08:00', '09:00', '10:00', '11:00', 
-                '14:00', '15:00', '16:00', '17:00'
-            ];
+            const timeSlots = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
             
             let timeSlotsHTML = '';
-            
             timeSlots.forEach(time => {
                 timeSlotsHTML += `<div class="time-slot available" data-time="${time}">${time}</div>`;
             });
@@ -1500,14 +1461,12 @@
                     document.querySelectorAll('.time-slot.selected').forEach(s => {
                         s.classList.remove('selected');
                     });
-                    
                     this.classList.add('selected');
                     updateScheduleInfo();
                 });
             });
         }
         
-        // Função para atualizar as informações do agendamento
         function updateScheduleInfo() {
             const serviceDate = document.getElementById('service-date').value;
             const selectedTime = document.querySelector('.time-slot.selected')?.getAttribute('data-time');
@@ -1529,7 +1488,6 @@
             }
         }
         
-        // Função para atualizar estatísticas
         function updateStats() {
             const activeAppointments = appointments.filter(a => a.status === 'active' || a.status === 'in-production').length;
             const totalPieces = appointments.reduce((sum, appointment) => {
@@ -1551,20 +1509,22 @@
             document.getElementById('occupied-days').textContent = uniqueDates.size;
         }
         
-        // Inicialização do sistema
+        // INICIALIZAÇÃO EXTREMA DO SISTEMA
         document.addEventListener('DOMContentLoaded', function() {
-            // Carrega agendamentos do Firestore
-            loadAppointmentsFromFirestore();
+            console.log("🚀 INICIANDO SISTEMA - EXTREME MODE");
             
-            // Gera o calendário inicial
-            generateCalendar(currentMonth, currentYear);
+            // CARREGAMENTO EM SEQUÊNCIA EXTREMA
+            loadAppointmentsFromFirestoreExtreme().then(() => {
+                generateCalendar(currentMonth, currentYear);
+                console.log("✅ SISTEMA INICIALIZADO COM SUCESSO");
+            }).catch(error => {
+                console.error("❌ FALHA CRÍTICA NA INICIALIZAÇÃO:", error);
+            });
             
-            // Define a data mínima para o campo de data como hoje
             const today = new Date();
             const minDate = today.toISOString().split('T')[0];
             document.getElementById('service-date').min = minDate;
             
-            // Adiciona eventos aos botões de navegação do calendário
             document.getElementById('prev-month').addEventListener('click', function() {
                 currentMonth--;
                 if (currentMonth < 0) {
@@ -1583,13 +1543,9 @@
                 generateCalendar(currentMonth, currentYear);
             });
             
-            // Atualiza os horários quando a data é alterada
             document.getElementById('service-date').addEventListener('change', updateTimeSlots);
-            
-            // Atualiza as informações quando a quantidade é alterada
             document.getElementById('quantity').addEventListener('change', updateScheduleInfo);
             
-            // Adiciona evento de envio do formulário
             document.getElementById('appointment-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -1606,11 +1562,9 @@
                     return;
                 }
                 
-                // Calcula os dias estimados
                 const estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
                 const documentNumber = `DOC-${Date.now().toString().slice(-6)}`;
                 
-                // Cria o agendamento
                 const newAppointment = {
                     clientName,
                     scheduledBy,
@@ -1627,26 +1581,16 @@
                 };
                 
                 try {
-                    // Salva no Firestore
-                    const id = await saveAppointmentToFirestore(newAppointment);
+                    const id = await saveAppointmentToFirestoreExtreme(newAppointment);
                     newAppointment.id = id;
-                    
-                    // Adiciona ao array de agendamentos
                     appointments.push(newAppointment);
-                    
-                    // Marca os dias como ocupados no calendário
-                    markDaysAsBooked(serviceDate, estimatedDays);
-                    
-                    // Gera o PNG automaticamente
+                    markDaysAsBookedExtreme(serviceDate, estimatedDays);
                     generateAppointmentPNG(newAppointment);
-                    
-                    // Atualiza a interface
                     loadAppointmentsList();
                     updateStats();
                     
                     alert('Agendamento realizado com sucesso! O comprovante foi baixado automaticamente.');
                     
-                    // Limpa o formulário
                     document.getElementById('appointment-form').reset();
                     document.getElementById('time-slots').innerHTML = '';
                     document.getElementById('entry-datetime').textContent = '-';
@@ -1658,7 +1602,6 @@
                 }
             });
             
-            // Configura o modal de edição
             const editModal = document.getElementById('edit-modal');
             const closeModalBtn = document.querySelector('.close-modal');
             const cancelEditBtn = document.getElementById('cancel-edit');
@@ -1666,40 +1609,43 @@
             const togglePasswordBtn = document.getElementById('toggle-password');
             const editPasswordField = document.getElementById('edit-password');
             
-            // Fechar modal ao clicar no X
             closeModalBtn.addEventListener('click', closeEditModal);
-            
-            // Fechar modal ao clicar no botão Cancelar
             cancelEditBtn.addEventListener('click', closeEditModal);
             
-            // Fechar modal ao clicar fora do conteúdo
             editModal.addEventListener('click', function(e) {
                 if (e.target === editModal) {
                     closeEditModal();
                 }
             });
             
-            // Submeter formulário de edição
             editForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveEdit();
             });
             
-            // Alternar visibilidade da senha
             togglePasswordBtn.addEventListener('click', function() {
                 const type = editPasswordField.getAttribute('type') === 'password' ? 'text' : 'password';
                 editPasswordField.setAttribute('type', type);
-                
-                // Alternar ícone
                 const icon = this.querySelector('i');
                 icon.classList.toggle('fa-eye');
                 icon.classList.toggle('fa-eye-slash');
             });
-            
-            // Atualiza estatísticas iniciais e lista de agendamentos
-            updateStats();
-            loadAppointmentsList();
         });
+
+        // LISTENER EXTREMO PARA ATUALIZAÇÕES EM TEMPO REAL
+        db.collection('appointments')
+            .orderBy('createdAt', 'desc')
+            .onSnapshot((snapshot) => {
+                if (!isInitialLoadComplete) return;
+                
+                console.log("🔄 ATUALIZAÇÃO EM TEMPO REAL DETECTADA");
+                loadAppointmentsFromFirestoreExtreme().then(() => {
+                    console.log("✅ SISTEMA SINCRONIZADO EM TEMPO REAL");
+                });
+            }, (error) => {
+                console.error("❌ ERRO NO LISTENER EM TEMPO REAL:", error);
+            });
+
     </script>
 </body>
 </html>
