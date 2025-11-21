@@ -41,8 +41,8 @@
             background-color: #f9f9f9;
             color: var(--text);
             line-height: 1.6;
-            min-width: 1200px;
-            overflow-x: auto;
+            /* Removido min-width: 1200px; para permitir responsividade */
+            overflow-x: hidden; /* Alterado de auto para hidden */
         }
 
         .container {
@@ -64,6 +64,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap; /* Adicionado para responsividade */
         }
 
         .logo-container {
@@ -71,6 +72,7 @@
             align-items: center;
             gap: 15px;
             flex: 1;
+            min-width: 300px; /* Adicionado para evitar quebra prematura */
         }
 
         .logo {
@@ -737,7 +739,158 @@
             margin-top: 20px;
         }
 
-        /* Remover todas as media queries para mobile */
+        /* Media Queries para Responsividade */
+        @media (max-width: 1200px) {
+            .container {
+                max-width: 100%;
+                padding: 0 15px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .calendar-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header-contact {
+                margin-top: 15px;
+                align-items: flex-start;
+            }
+            
+            .hero {
+                padding: 70px 0;
+            }
+            
+            .hero h2 {
+                font-size: 2rem;
+            }
+            
+            section {
+                padding: 60px 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .logo-container {
+                width: 100%;
+                margin-bottom: 15px;
+            }
+            
+            .header-contact {
+                width: 100%;
+                align-items: flex-start;
+            }
+            
+            .contact-item span {
+                font-size: 0.85rem;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .appointment-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .appointment-actions {
+                margin-top: 15px;
+                width: 100%;
+                justify-content: flex-end;
+            }
+            
+            .time-slots {
+                grid-template-columns: 1fr;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .hero h2 {
+                font-size: 1.8rem;
+            }
+            
+            .hero p {
+                font-size: 1rem;
+            }
+            
+            .section-title h2 {
+                font-size: 1.8rem;
+            }
+            
+            .card h2 {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .calendar-grid {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 5px;
+            }
+            
+            .calendar-day {
+                padding: 8px 3px;
+                font-size: 0.85rem;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+            
+            .hero {
+                padding: 50px 0;
+            }
+            
+            .hero h2 {
+                font-size: 1.6rem;
+            }
+            
+            section {
+                padding: 40px 0;
+            }
+            
+            .section-title {
+                margin-bottom: 30px;
+            }
+            
+            .section-title h2 {
+                font-size: 1.6rem;
+            }
+            
+            .logo-text h1 {
+                font-size: 1.3rem;
+            }
+            
+            .logo-text p {
+                font-size: 0.8rem;
+            }
+            
+            .logo {
+                width: 50px;
+                height: 50px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -786,8 +939,11 @@
                 <h2><i class="fas fa-calendar-plus"></i> Novo Agendamento</h2>
                 <form id="appointment-form">
                     <div class="form-group">
-                        <label for="client-name">Nome do Cliente</label>
-                        <input type="text" id="client-name" required placeholder="Digite o nome do cliente">
+                        <label for="client-name">Cliente</label>
+                        <select id="client-name" required>
+                            <option value="">Selecione um cliente</option>
+                            <!-- Clientes serão carregados do banco de dados -->
+                        </select>
                     </div>
                     
                     <div class="form-group">
@@ -924,8 +1080,10 @@
             </div>
             <form id="edit-form">
                 <div class="form-group">
-                    <label for="edit-client-name">Nome do Cliente</label>
-                    <input type="text" id="edit-client-name" required>
+                    <label for="edit-client-name">Cliente</label>
+                    <select id="edit-client-name" required>
+                        <!-- Clientes serão carregados do banco de dados -->
+                    </select>
                 </div>
                 
                 <div class="form-group">
@@ -1035,14 +1193,38 @@
             appId: "1:948222283708:web:a82876883f247e51ede5b9"
         };
 
+        // CONFIGURAÇÃO DO BANCO DE DADOS DE CLIENTES
+        const firebaseConfigClientes = {
+            apiKey: "AIzaSyCyTwlzsMG5-l07vnrb8XIx9J6AIP_Xuvw",
+            authDomain: "cadastro-cliente-6bd66.firebaseapp.com",
+            projectId: "cadastro-cliente-6bd66",
+            storageBucket: "cadastro-cliente-6bd66.firebasestorage.app",
+            messagingSenderId: "492238035100",
+            appId: "1:492238035100:web:cfb93092a71798dd2e7559"
+        };
+
         // INICIALIZAÇÃO EXTREMA DO FIREBASE
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
 
+        // INICIALIZAÇÃO DO FIREBASE PARA CLIENTES
+        let appClientes;
+        let dbClientes;
+        
+        try {
+            appClientes = firebase.initializeApp(firebaseConfigClientes, "clientes");
+            dbClientes = firebase.firestore(appClientes);
+        } catch (error) {
+            // Se já estiver inicializado, usa a instância existente
+            appClientes = firebase.app("clientes");
+            dbClientes = firebase.firestore(appClientes);
+        }
+
         // VARIÁVEIS GLOBAIS COM VERIFICAÇÃO EXTREMA
         let appointments = [];
+        let clients = [];
         let bookedDates = {};
         let currentEditingIndex = null;
         let currentDate = new Date();
@@ -1050,6 +1232,81 @@
         let currentYear = currentDate.getFullYear();
         const EDIT_PASSWORD = "CosturADM2023";
         let isInitialLoadComplete = false;
+
+        // FUNÇÃO EXTREMA PARA CARREGAR CLIENTES ATIVOS
+        async function loadActiveClientsExtreme() {
+            console.log("🔥 CARREGANDO CLIENTES ATIVOS DO FIREBASE - EXTREME MODE");
+            try {
+                const snapshot = await dbClientes.collection('clientes').get();
+                
+                clients = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    console.log("Cliente encontrado:", data);
+                    
+                    // Verificar se o cliente está ativo
+                    if (data.statusCadastro === "Ativo") {
+                        clients.push({ 
+                            id: doc.id, 
+                            ...data
+                        });
+                    }
+                });
+                
+                console.log(`📊 ${clients.length} CLIENTES ATIVOS CARREGADOS`);
+                
+                // Atualizar os menus de seleção de clientes
+                updateClientSelectMenus();
+                
+                return true;
+            } catch (error) {
+                console.error("❌ ERRO CRÍTICO AO CARREGAR CLIENTES:", error);
+                // Tentar carregar sem filtro de status
+                try {
+                    const snapshot = await dbClientes.collection('clientes').get();
+                    clients = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        clients.push({ 
+                            id: doc.id, 
+                            ...data
+                        });
+                    });
+                    
+                    console.log(`📊 ${clients.length} CLIENTES CARREGADOS (SEM FILTRO)`);
+                    updateClientSelectMenus();
+                    return true;
+                } catch (error2) {
+                    console.error("❌ ERRO TOTAL AO CARREGAR CLIENTES:", error2);
+                    return false;
+                }
+            }
+        }
+
+        // FUNÇÃO PARA ATUALIZAR OS MENUS DE SELEÇÃO DE CLIENTES
+        function updateClientSelectMenus() {
+            const clientSelect = document.getElementById('client-name');
+            const editClientSelect = document.getElementById('edit-client-name');
+            
+            // Limpar opções existentes
+            clientSelect.innerHTML = '<option value="">Selecione um cliente</option>';
+            editClientSelect.innerHTML = '<option value="">Selecione um cliente</option>';
+            
+            // Adicionar clientes ativos
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.marca || client.nome || `Cliente ${client.id}`; // Usar a marca, nome ou ID como fallback
+                option.textContent = client.marca || client.nome || `Cliente ${client.id}`; // Mostrar a marca, nome ou ID
+                option.setAttribute('data-client-id', client.id);
+                
+                const editOption = option.cloneNode(true);
+                
+                clientSelect.appendChild(option);
+                editClientSelect.appendChild(editOption);
+            });
+            
+            console.log("✅ MENUS DE CLIENTES ATUALIZADOS");
+        }
 
         // FUNÇÃO EXTREMA PARA ATUALIZAR DATAS OCUPADAS
         function updateBookedDatesExtreme() {
@@ -1514,7 +1771,9 @@
             console.log("🚀 INICIANDO SISTEMA - EXTREME MODE");
             
             // CARREGAMENTO EM SEQUÊNCIA EXTREMA
-            loadAppointmentsFromFirestoreExtreme().then(() => {
+            loadActiveClientsExtreme().then(() => {
+                return loadAppointmentsFromFirestoreExtreme();
+            }).then(() => {
                 generateCalendar(currentMonth, currentYear);
                 console.log("✅ SISTEMA INICIALIZADO COM SUCESSO");
             }).catch(error => {
@@ -1559,6 +1818,11 @@
                 
                 if (!selectedTime) {
                     alert('Por favor, selecione um horário.');
+                    return;
+                }
+                
+                if (!clientName) {
+                    alert('Por favor, selecione um cliente.');
                     return;
                 }
                 
