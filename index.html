@@ -35,14 +35,16 @@
             --admin-color: #8e44ad;
             --completed-color: #27ae60;
             --in-production-color: #3498db;
+            --past-day-color: #95a5a6;
+            --holiday-color: #e74c3c;
+            --carnival-color: #f39c12;
         }
 
         body {
             background-color: #f9f9f9;
             color: var(--text);
             line-height: 1.6;
-            /* Removido min-width: 1200px; para permitir responsividade */
-            overflow-x: hidden; /* Alterado de auto para hidden */
+            overflow-x: hidden;
         }
 
         .container {
@@ -64,7 +66,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap; /* Adicionado para responsividade */
+            flex-wrap: wrap;
         }
 
         .logo-container {
@@ -72,7 +74,7 @@
             align-items: center;
             gap: 15px;
             flex: 1;
-            min-width: 300px; /* Adicionado para evitar quebra prematura */
+            min-width: 300px;
         }
 
         .logo {
@@ -310,10 +312,21 @@
 
         .btn-download {
             background: var(--secondary);
+            color: white;
             padding: 8px 15px;
             font-size: 0.9rem;
-            width: auto;
-            margin-right: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-download:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
         }
 
         .btn-complete {
@@ -404,6 +417,24 @@
             background-color: #fff9e6;
         }
         
+        .calendar-day.past {
+            background-color: var(--past-day-color);
+            color: white;
+            cursor: not-allowed;
+        }
+        
+        .calendar-day.holiday {
+            background-color: var(--holiday-color);
+            color: white;
+            cursor: not-allowed;
+        }
+        
+        .calendar-day.carnival {
+            background-color: var(--carnival-color);
+            color: white;
+            cursor: pointer;
+        }
+        
         .appointments-list {
             max-height: 400px;
             overflow-y: auto;
@@ -440,6 +471,7 @@
         .appointment-actions {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
         
         .appointment-status {
@@ -447,6 +479,8 @@
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
+            margin-top: 5px;
+            display: inline-block;
         }
         
         .status-booked {
@@ -503,7 +537,7 @@
         
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             margin-top: 20px;
         }
@@ -889,6 +923,16 @@
                 width: 50px;
                 height: 50px;
             }
+            
+            .appointment-actions {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .btn-download, .btn-update {
+                width: 100%;
+                margin-right: 0;
+            }
         }
     </style>
 </head>
@@ -955,6 +999,11 @@
                     </div>
                     
                     <div class="form-group">
+                        <label for="entry-date">Data de Entrada</label>
+                        <input type="date" id="entry-date" required>
+                    </div>
+                    
+                    <div class="form-group">
                         <label for="service-date">Data de Início do Serviço</label>
                         <input type="date" id="service-date" required>
                     </div>
@@ -1017,10 +1066,6 @@
                     <div class="stat-value" id="total-pieces">0</div>
                     <div class="stat-label">Peças em Produção</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="occupied-days">0</div>
-                    <div class="stat-label">Dias Ocupados</div>
-                </div>
             </div>
             
             <div class="card">
@@ -1049,6 +1094,18 @@
                             <div class="legend-item">
                                 <div class="legend-color" style="border: 2px solid var(--secondary); background-color: #fff9e6;"></div>
                                 <span>Dia atual</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: var(--past-day-color);"></div>
+                                <span>Dia passado</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: var(--holiday-color);"></div>
+                                <span>Feriado - Indisponível</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: var(--carnival-color);"></div>
+                                <span>Ponto facultativo - Consulte disponibilidade</span>
                             </div>
                         </div>
                         
@@ -1091,6 +1148,11 @@
                         <option value="Wallison Vinicius">Wallison Vinicius</option>
                         <option value="Eduarda Emmanoelly">Eduarda Emmanoelly</option>
                     </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-entry-date">Data de Entrada</label>
+                    <input type="date" id="edit-entry-date" required>
                 </div>
                 
                 <div class="form-group">
@@ -1211,6 +1273,51 @@
         const EDIT_PASSWORD = "CosturADM2023";
         let isInitialLoadComplete = false;
 
+        // LISTA DE FERIADOS 2026
+        const holidays2026 = [
+            "2026-01-01", // Ano Novo
+            "2026-03-06", // Dia de Pernambuco
+            "2026-04-03", // Sexta-Feira Santa
+            "2026-04-21", // Dia de Tiradentes
+            "2026-05-01", // Dia do Trabalhador
+            "2026-05-18", // Aniversário de Caruaru
+            "2026-06-04", // Corpus Christi
+            "2026-06-24", // Dia de São João
+            "2026-06-29", // Dia de São Pedro
+            "2026-09-07", // Independência do Brasil
+            "2026-09-15", // Nossa Senhora das Dores
+            "2026-10-12", // Dia de Nossa Senhora Aparecida
+            "2026-11-02", // Dia de Finados
+            "2026-11-15", // Proclamação da República
+            "2026-11-20", // Dia da Consciência Negra
+            "2026-12-25"  // Natal
+        ];
+
+        // DIAS DE CARNAVAL 2026 (Ponto facultativo)
+        const carnivalDays2026 = [
+            "2026-02-16", // Segunda de Carnaval
+            "2026-02-17", // Terça de Carnaval
+            "2026-02-18"  // Quarta-feira de Cinzas
+        ];
+
+        // FUNÇÃO PARA VERIFICAR SE É FERIADO
+        function isHoliday(dateString) {
+            return holidays2026.includes(dateString);
+        }
+
+        // FUNÇÃO PARA VERIFICAR SE É PONTO FACULTATIVO
+        function isCarnivalDay(dateString) {
+            return carnivalDays2026.includes(dateString);
+        }
+
+        // FUNÇÃO PARA VERIFICAR SE É DIA PASSADO
+        function isPastDay(dateString) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const checkDate = new Date(dateString);
+            return checkDate < today;
+        }
+
         // FUNÇÃO EXTREMA PARA CARREGAR CLIENTES ATIVOS
         async function loadActiveClientsExtreme() {
             console.log("🔥 CARREGANDO CLIENTES ATIVOS DO FIREBASE - EXTREME MODE");
@@ -1273,8 +1380,8 @@
             // Adicionar clientes ativos
             clients.forEach(client => {
                 const option = document.createElement('option');
-                option.value = client.marca || client.nome || `Cliente ${client.id}`; // Usar a marca, nome ou ID como fallback
-                option.textContent = client.marca || client.nome || `Cliente ${client.id}`; // Mostrar a marca, nome ou ID
+                option.value = client.marca || client.nome || `Cliente ${client.id}`;
+                option.textContent = client.marca || client.nome || `Cliente ${client.id}`;
                 option.setAttribute('data-client-id', client.id);
                 
                 const editOption = option.cloneNode(true);
@@ -1327,7 +1434,6 @@
                     appointments.push({ 
                         id: doc.id, 
                         ...data,
-                        // GARANTIR QUE OS DIAS ESTIMADOS EXISTAM
                         estimatedDays: data.estimatedDays || calculateEstimatedDays(data.serviceDate, data.quantity)
                     });
                 });
@@ -1337,7 +1443,7 @@
                 // ATUALIZAÇÃO EM CASCATA EXTREMA
                 loadAppointmentsList();
                 updateStats();
-                updateBookedDatesExtreme(); // ATUALIZAR DATAS PRIMEIRO
+                updateBookedDatesExtreme();
                 
                 isInitialLoadComplete = true;
                 
@@ -1374,7 +1480,7 @@
                 });
                 console.log("✅ AGENDAMENTO ATUALIZADO NO FIREBASE:", id);
             } catch (error) {
-                console.error("❌ ERRO AO ATUALIZAR AGENDAMENTO:", error);
+                console.error("❌ ERRO AO ATUALIZAR AGendamento:", error);
                 throw error;
             }
         }
@@ -1426,7 +1532,7 @@
         function generateAppointmentPNG(appointment) {
             const canvas = document.createElement('canvas');
             canvas.width = 800;
-            canvas.height = 600;
+            canvas.height = 650;
             const ctx = canvas.getContext('2d');
             
             ctx.fillStyle = 'white';
@@ -1452,11 +1558,12 @@
             const info = [
                 `Cliente: ${appointment.clientName}`,
                 `Agendado por: ${appointment.scheduledBy}`,
+                `Data de Entrada: ${appointment.entryDate || appointment.serviceDate}`,
                 `Data de Início: ${appointment.serviceDate}`,
                 `Horário: ${appointment.serviceTime}`,
                 `Quantidade de Peças: ${appointment.quantity}`,
                 `Tipo de Serviço: ${appointment.serviceType}`,
-                `Status: ${appointment.status}`,
+                `Status: ${appointment.status === 'active' ? 'Agendado' : appointment.status === 'in-production' ? 'Em produção' : appointment.status === 'completed' ? 'Realizado' : 'Cancelado'}`,
                 `Dias Estimados: ${appointment.estimatedDays} dias`,
                 `Data de Término: ${calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays).toLocaleDateString('pt-BR')}`
             ];
@@ -1470,11 +1577,17 @@
             ctx.font = 'bold 16px Arial';
             ctx.fillText(`Nº do Documento: ${appointment.documentNumber || 'DOC-' + appointment.id.toString().slice(-6)}`, 50, yPosition);
             
+            yPosition += 40;
+            ctx.font = '12px Arial';
+            ctx.fillText('Observações:', 50, yPosition);
+            yPosition += 20;
+            ctx.fillText('1. Em caso de feriados, o prazo poderá ser estendido.', 50, yPosition);
+            
             ctx.fillStyle = '#2c3e50';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Costur Confecções - Sua marca, nossa costura', canvas.width / 2, 550);
-            ctx.fillText('Rua professor ferrucio, 436, São Francisco - Caruaru/PE', canvas.width / 2, 570);
+            ctx.fillText('Costur Confecções - Sua marca, nossa costura', canvas.width / 2, 620);
+            ctx.fillText('Rua professor ferrucio, 436, São Francisco - Caruaru/PE', canvas.width / 2, 640);
             
             const dataURL = canvas.toDataURL('image/png');
             const link = document.createElement('a');
@@ -1483,12 +1596,19 @@
             link.click();
         }
 
+        // FUNÇÃO PARA BAIXAR FORMULÁRIO DE AGENDAMENTO
+        function downloadAppointmentPDF(index) {
+            const appointment = appointments[index];
+            generateAppointmentPNG(appointment);
+        }
+
         function showEditModal(index) {
             currentEditingIndex = index;
             const appointment = appointments[index];
             
             document.getElementById('edit-client-name').value = appointment.clientName;
             document.getElementById('edit-scheduled-by').value = appointment.scheduledBy;
+            document.getElementById('edit-entry-date').value = appointment.entryDate || appointment.serviceDate;
             document.getElementById('edit-service-date').value = appointment.serviceDate;
             document.getElementById('edit-quantity').value = appointment.quantity;
             document.getElementById('edit-service-type').value = appointment.serviceType;
@@ -1532,6 +1652,7 @@
             
             const clientName = document.getElementById('edit-client-name').value;
             const scheduledBy = document.getElementById('edit-scheduled-by').value;
+            const entryDate = document.getElementById('edit-entry-date').value;
             const serviceDate = document.getElementById('edit-service-date').value;
             const quantity = document.getElementById('edit-quantity').value;
             const serviceType = document.getElementById('edit-service-type').value;
@@ -1549,6 +1670,7 @@
             const updates = {
                 clientName: clientName,
                 scheduledBy: scheduledBy,
+                entryDate: entryDate,
                 serviceDate: serviceDate,
                 quantity: parseInt(quantity),
                 serviceType: serviceType,
@@ -1561,7 +1683,7 @@
             try {
                 await updateAppointmentInFirestoreExtreme(appointment.id, updates);
                 Object.assign(appointment, updates);
-                updateBookedDatesExtreme(); // ATUALIZAÇÃO EXTREMA
+                updateBookedDatesExtreme();
                 loadAppointmentsList();
                 updateStats();
                 closeEditModal();
@@ -1606,7 +1728,8 @@
                         <div class="appointment-details">
                             <h4>${appointment.clientName}</h4>
                             <p><strong>Agendado por:</strong> ${appointment.scheduledBy}</p>
-                            <p><strong>Data:</strong> ${appointment.serviceDate} às ${appointment.serviceTime}</p>
+                            <p><strong>Data de Entrada:</strong> ${appointment.entryDate || appointment.serviceDate}</p>
+                            <p><strong>Data de Início:</strong> ${appointment.serviceDate} às ${appointment.serviceTime}</p>
                             <p><strong>Peças:</strong> ${appointment.quantity} | <strong>Tipo:</strong> ${appointment.serviceType}</p>
                             <p><strong>Previsão de Término:</strong> ${calculateCompletionDate(appointment.serviceDate, appointment.estimatedDays).toLocaleDateString('pt-BR')}</p>
                             <div class="appointment-status ${statusClass}">${statusText}</div>
@@ -1614,6 +1737,9 @@
                         <div class="appointment-actions">
                             <button class="btn-update" onclick="showEditModal(${index})">
                                 <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button class="btn-download" onclick="downloadAppointmentPDF(${index})">
+                                <i class="fas fa-download"></i> Baixar
                             </button>
                         </div>
                     </div>
@@ -1648,22 +1774,31 @@
                 
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                    let dayClass = "calendar-day available";
+                    let dayClass = "calendar-day";
                     
-                    if (bookedDates[dateKey]) {
-                        dayClass = "calendar-day booked";
+                    // Verificar tipo de dia
+                    if (isPastDay(dateKey)) {
+                        dayClass += " past";
+                    } else if (isHoliday(dateKey)) {
+                        dayClass += " holiday";
+                    } else if (isCarnivalDay(dateKey)) {
+                        dayClass += " carnival";
+                    } else if (bookedDates[dateKey]) {
+                        dayClass += " booked";
+                    } else {
+                        dayClass += " available";
                     }
                     
                     if (day === currentDay && month === currentMonthToday && year === currentYearToday) {
                         dayClass += " today";
                     }
                     
-                    calendarHTML += `<div class="${dayClass}" data-day="${day}" data-month="${month}" data-year="${year}">${day}</div>`;
+                    calendarHTML += `<div class="${dayClass}" data-day="${day}" data-month="${month}" data-year="${year}" title="${getDayTooltip(dateKey)}">${day}</div>`;
                 }
                 
                 document.getElementById('calendar-days').innerHTML = calendarHTML;
                 
-                document.querySelectorAll('.calendar-day.available').forEach(day => {
+                document.querySelectorAll('.calendar-day.available, .calendar-day.carnival').forEach(day => {
                     day.addEventListener('click', function() {
                         const selectedDay = this.getAttribute('data-day');
                         const selectedMonth = parseInt(this.getAttribute('data-month')) + 1;
@@ -1677,6 +1812,20 @@
                 console.log("📅 CALENDÁRIO ATUALIZADO COM SUCESSO");
             } catch (error) {
                 console.error("❌ ERRO AO GERAR CALENDÁRIO:", error);
+            }
+        }
+        
+        function getDayTooltip(dateString) {
+            if (isHoliday(dateString)) {
+                return "Feriado - Indisponível";
+            } else if (isCarnivalDay(dateString)) {
+                return "Ponto facultativo - Consulte disponibilidade";
+            } else if (isPastDay(dateString)) {
+                return "Dia passado";
+            } else if (bookedDates[dateString]) {
+                return "Período ocupado";
+            } else {
+                return "Disponível para agendamento";
             }
         }
         
@@ -1703,12 +1852,13 @@
         }
         
         function updateScheduleInfo() {
+            const entryDate = document.getElementById('entry-date').value;
             const serviceDate = document.getElementById('service-date').value;
             const selectedTime = document.querySelector('.time-slot.selected')?.getAttribute('data-time');
             const quantity = document.getElementById('quantity').value;
             
             if (serviceDate && selectedTime && quantity) {
-                const entryDateTime = `${serviceDate.split('-').reverse().join('/')} às ${selectedTime}`;
+                const entryDateTime = entryDate ? `${entryDate.split('-').reverse().join('/')}` : 'Não informada';
                 document.getElementById('entry-datetime').textContent = entryDateTime;
                 
                 const estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
@@ -1732,16 +1882,8 @@
                 return sum;
             }, 0);
             
-            const uniqueDates = new Set();
-            appointments.forEach(appointment => {
-                if (appointment.status === 'active' || appointment.status === 'in-production') {
-                    uniqueDates.add(appointment.serviceDate);
-                }
-            });
-            
             document.getElementById('total-appointments').textContent = activeAppointments;
             document.getElementById('total-pieces').textContent = totalPieces;
-            document.getElementById('occupied-days').textContent = uniqueDates.size;
         }
         
         // INICIALIZAÇÃO EXTREMA DO SISTEMA
@@ -1758,10 +1900,18 @@
                 console.error("❌ FALHA CRÍTICA NA INICIALIZAÇÃO:", error);
             });
             
+            // Configurar data mínima para os campos de data
             const today = new Date();
             const minDate = today.toISOString().split('T')[0];
+            document.getElementById('entry-date').min = minDate;
             document.getElementById('service-date').min = minDate;
+            document.getElementById('edit-entry-date').min = minDate;
+            document.getElementById('edit-service-date').min = minDate;
             
+            // Configurar data de entrada como hoje por padrão
+            document.getElementById('entry-date').value = minDate;
+            
+            // Event listeners para navegação do calendário
             document.getElementById('prev-month').addEventListener('click', function() {
                 currentMonth--;
                 if (currentMonth < 0) {
@@ -1780,14 +1930,18 @@
                 generateCalendar(currentMonth, currentYear);
             });
             
+            // Event listeners para atualização de informações
+            document.getElementById('entry-date').addEventListener('change', updateScheduleInfo);
             document.getElementById('service-date').addEventListener('change', updateTimeSlots);
             document.getElementById('quantity').addEventListener('change', updateScheduleInfo);
             
+            // Event listener para o formulário de agendamento
             document.getElementById('appointment-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const clientName = document.getElementById('client-name').value;
                 const scheduledBy = document.getElementById('scheduled-by').value;
+                const entryDate = document.getElementById('entry-date').value;
                 const serviceDate = document.getElementById('service-date').value;
                 const quantity = document.getElementById('quantity').value;
                 const serviceType = document.getElementById('service-type').value;
@@ -1804,12 +1958,18 @@
                     return;
                 }
                 
+                if (!entryDate) {
+                    alert('Por favor, informe a data de entrada.');
+                    return;
+                }
+                
                 const estimatedDays = calculateEstimatedDays(serviceDate, parseInt(quantity));
                 const documentNumber = `DOC-${Date.now().toString().slice(-6)}`;
                 
                 const newAppointment = {
                     clientName,
                     scheduledBy,
+                    entryDate,
                     serviceDate,
                     serviceTime: selectedTime,
                     quantity: parseInt(quantity),
@@ -1834,6 +1994,7 @@
                     alert('Agendamento realizado com sucesso! O comprovante foi baixado automaticamente.');
                     
                     document.getElementById('appointment-form').reset();
+                    document.getElementById('entry-date').value = minDate; // Reset para data atual
                     document.getElementById('time-slots').innerHTML = '';
                     document.getElementById('entry-datetime').textContent = '-';
                     document.getElementById('completion-datetime').textContent = '-';
@@ -1844,6 +2005,7 @@
                 }
             });
             
+            // Configuração do modal de edição
             const editModal = document.getElementById('edit-modal');
             const closeModalBtn = document.querySelector('.close-modal');
             const cancelEditBtn = document.getElementById('cancel-edit');
